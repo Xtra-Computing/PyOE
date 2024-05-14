@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/ElectionData.csv",
+    "task": "regression"
+}

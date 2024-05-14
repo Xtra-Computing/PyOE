@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": [],
+    "target": ["Appliances"],
+    "timestamp": ["date"],
+    "null": [],
+    "window size": 720,
+    "unnecessary": []
+}

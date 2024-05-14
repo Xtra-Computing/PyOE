@@ -1,0 +1,9 @@
+{
+    "numerical": ["Global_active_power","Global_reactive_power","Voltage","Global_intensity"],
+    "categorical": [],
+    "target": ["Sub_metering_3"],
+    "timestamp": ["Date", "Time"],
+    "null": [],
+    "window size": 43200,
+    "unnecessary": []
+}

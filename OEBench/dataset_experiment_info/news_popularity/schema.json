@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": [],
+    "target": ["LinkedIn"],
+    "timestamp": ["PublishDate"],
+    "null": [-1],
+    "window size": 2000,
+    "unnecessary": ["IDLink", "Title","Headline","Source","Topic","GooglePlus","Facebook"]
+}

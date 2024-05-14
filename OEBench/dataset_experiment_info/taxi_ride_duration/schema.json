@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": ["store_and_fwd_flag"],
+    "target": ["trip_duration"],
+    "timestamp": ["pickup_datetime"],
+    "null": [],
+    "window size": 20000,
+    "unnecessary": ["id", "dropoff_datetime"]
+}

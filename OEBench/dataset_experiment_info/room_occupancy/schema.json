@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": [],
+    "target": ["Room_Occupancy_Count"],
+    "timestamp": ["Date", "Time"],
+    "null": [],
+    "window size": 240,
+    "unnecessary": []
+}

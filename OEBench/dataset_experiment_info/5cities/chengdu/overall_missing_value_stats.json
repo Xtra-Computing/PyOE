@@ -1,0 +1,1 @@
+{"overall":{"columns_with_null":["PM_Caotangsi","PM_Shahepu","PM_US Post","DEWP","HUMI","PRES","TEMP","cbwd","Iws","precipitation","Iprec"],"col_null_dict":{"PM_Caotangsi":28164,"PM_Shahepu":27990,"PM_US Post":23684,"DEWP":529,"HUMI":535,"PRES":521,"TEMP":527,"cbwd":521,"Iws":533,"precipitation":2955,"Iprec":2955},"empty_cells_num":88914,"ave_null_columns":1.6908945687}}

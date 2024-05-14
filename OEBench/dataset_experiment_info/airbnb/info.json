@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/airbnb-recruiting-new-user-bookings/train_users_2.csv",
+    "task": "classification"
+}

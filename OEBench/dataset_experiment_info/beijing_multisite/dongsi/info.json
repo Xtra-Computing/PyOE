@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/BeijingMulti-SiteAir-QualityData/PRSA_Data_Dongsi_20130301-20170228.csv",
+    "task": "regression"
+}

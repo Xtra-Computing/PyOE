@@ -1,0 +1,9 @@
+{
+    "numerical": ["Att1","Att2","Att3","Att4","Att5","Att6","Att7","Att8","Att9","Att10","Att11","Att12","Att13","Att14","Att15","Att16","Att17","Att18","Att19","Att20","Att21","Att22","Att23","Att24","Att25","Att26","Att27","Att28","Att29","Att30","Att31", "Att32", "Att33"],
+    "categorical": [],
+    "target": ["class"],
+    "timestamp": [],
+    "null": [],
+    "window size": 100,
+    "unnecessary": []
+}

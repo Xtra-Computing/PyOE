@@ -1,0 +1,13 @@
+python experiments.py --model=tree \
+    --dataset=selected \
+    --alg=naive \
+    --epochs=1 \
+    --batch_size=64 \
+    --lr=0.01 \
+    --layers=3 \
+    --reg=1 \
+    --buffer=100 \
+    --ensemble=5 \
+    --window_factor=1 \
+    --missing_fill=knn2 \
+    --device="cpu"

@@ -1,0 +1,1 @@
+{"overall":{"columns_with_null":["PM2.5","PM10","SO2","NO2","CO","O3","TEMP","PRES","DEWP","RAIN","wd","WSPM"],"col_null_dict":{"PM2.5":925,"PM10":718,"SO2":935,"NO2":1023,"CO":1776,"O3":1719,"TEMP":20,"PRES":20,"DEWP":20,"RAIN":20,"wd":81,"WSPM":14},"empty_cells_num":7271,"ave_null_columns":0.2073636778}}

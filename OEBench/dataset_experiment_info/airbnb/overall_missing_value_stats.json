@@ -1,0 +1,1 @@
+{"overall":{"columns_with_null":["date_first_booking","age","first_affiliate_tracked"],"col_null_dict":{"date_first_booking":124543,"age":87990,"first_affiliate_tracked":6065},"empty_cells_num":218598,"ave_null_columns":1.0241132625}}

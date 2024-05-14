@@ -1,0 +1,8 @@
+{
+    "numerical": ["holiday","workingday","weather","temp","atemp","humidity","windspeed","casual","registered"],
+    "categorical": [],
+    "target": ["count"],
+    "timestamp": ["datetime","season"],
+    "window size": 720,
+    "unnecessary": []
+}

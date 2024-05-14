@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/BeijingPM2.5Data.csv",
+    "task": "regression"
+}

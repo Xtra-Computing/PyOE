@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": ["protocol_type", "service", "flag"],
+    "target": ["class"],
+    "timestamp": [],
+    "null": [],
+    "window size": 499,
+    "unnecessary": []
+}

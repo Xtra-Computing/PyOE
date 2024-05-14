@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/porto-seguro-safe-driver-prediction/train.csv",
+    "task": "classification"
+}

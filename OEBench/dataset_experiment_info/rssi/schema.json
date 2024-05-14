@@ -1,0 +1,9 @@
+{
+    "numerical": ["rssiOne", "rssiTwo"],
+    "categorical": [],
+    "target": ["locationStatus"],
+    "timestamp": ["timestamp"],
+    "null": [],
+    "window size": 499,
+    "unnecessary": ["name"]
+}

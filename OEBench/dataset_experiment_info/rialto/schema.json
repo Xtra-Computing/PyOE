@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": [],
+    "target": ["class"],
+    "timestamp": [],
+    "null": [],
+    "window size": 1500,
+    "unnecessary": []
+}

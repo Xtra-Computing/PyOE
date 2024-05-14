@@ -1,0 +1,9 @@
+{
+    "numerical": ["length", "weight", "looped", "neighbors", "income"],
+    "categorical": [],
+    "target": ["label"],
+    "timestamp": ["year", "day"],
+    "null": [],
+    "window size": 30400,
+    "unnecessary": ["address"]
+}

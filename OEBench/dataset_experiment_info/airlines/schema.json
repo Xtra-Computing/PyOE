@@ -1,0 +1,9 @@
+{
+    "numerical": ["DayOfWeek","Time", "Length"],
+    "categorical": ["Airline","Flight", "AirportFrom", "AirportTo"],
+    "target": ["Delay"],
+    "timestamp": ["DayOfWeek","Time"],
+    "null": [],
+    "window size": 17500,
+    "unnecessary": []
+}

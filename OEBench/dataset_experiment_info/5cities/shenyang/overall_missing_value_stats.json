@@ -1,0 +1,1 @@
+{"overall":{"columns_with_null":["PM_Taiyuanjie","PM_US Post","PM_Xiaoheyan","DEWP","HUMI","PRES","TEMP","cbwd","Iws","precipitation","Iprec"],"col_null_dict":{"PM_Taiyuanjie":28196,"PM_US Post":30904,"PM_Xiaoheyan":27957,"DEWP":692,"HUMI":680,"PRES":692,"TEMP":692,"cbwd":692,"Iws":692,"precipitation":12763,"Iprec":12763},"empty_cells_num":116723,"ave_null_columns":2.2197436483}}

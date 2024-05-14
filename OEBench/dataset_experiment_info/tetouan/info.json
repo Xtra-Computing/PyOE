@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/Tetuan City power consumption.csv",
+    "task": "regression"
+}

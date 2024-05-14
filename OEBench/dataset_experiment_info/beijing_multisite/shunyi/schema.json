@@ -1,0 +1,9 @@
+{
+    "numerical": ["PM2.5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN", "WSPM"],
+    "categorical": ["wd","station"],
+    "target": ["PM2.5"],
+    "timestamp": ["No", "year", "month", "day", "hour"],
+    "null": ["PM2.5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN", "WSPM", "wd"],
+    "window size": 720,
+    "unnecessary": []
+}

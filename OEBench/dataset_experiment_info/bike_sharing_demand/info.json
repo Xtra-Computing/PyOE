@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/bike-sharing-demand/train.csv",
+    "task": "regression"
+}

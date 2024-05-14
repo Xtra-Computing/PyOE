@@ -1,0 +1,9 @@
+{
+    "numerical": ["age"],
+    "categorical": ["gender","signup_method", "signup_flow", "language", "affiliate_channel", "affiliate_provider", "first_affiliate_tracked", "signup_app", "first_device_type", "first_browser"],
+    "target": ["country_destination"],
+    "timestamp": ["date_account_created", "timestamp_first_active", "date_first_booking"],
+    "null": [],
+    "window size": 10000,
+    "unnecessary": ["id"]
+}

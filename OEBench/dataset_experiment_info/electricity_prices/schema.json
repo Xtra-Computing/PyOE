@@ -1,0 +1,8 @@
+{
+    "numerical": ["nswprice","nswdemand","vicprice","vicdemand","transfer"],
+    "categorical": [],
+    "target": ["class"],
+    "timestamp": ["date","day","period"],
+    "window size": 672,
+    "unnecessary": []
+}

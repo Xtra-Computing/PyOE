@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": ["weather_description", "weather_main"],
+    "target": ["traffic_volume"],
+    "timestamp": ["date_time"],
+    "null": [],
+    "window size": 720,
+    "unnecessary": ["holiday"]
+}

@@ -1,0 +1,8 @@
+{
+    "numerical": ["DEWP", "TEMP", "PRES", "Iws", "Is", "Ir"],
+    "categorical": ["cbwd"],
+    "target": ["pm2.5"],
+    "timestamp": ["year","month", "day", "hour"],
+    "window size": 720,
+    "unnecessary": ["No"]
+}

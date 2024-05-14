@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": [],
+    "target": ["tavg"],
+    "timestamp": ["time"],
+    "null": [],
+    "window size": 365,
+    "unnecessary": []
+}

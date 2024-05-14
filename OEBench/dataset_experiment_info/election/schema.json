@@ -1,0 +1,9 @@
+{
+    "numerical": [],
+    "categorical": ["territoryName", "Party"],
+    "target": ["FinalMandates"],
+    "timestamp": ["time"],
+    "null": [],
+    "window size": 386,
+    "unnecessary": ["TimeElapsed"]
+}

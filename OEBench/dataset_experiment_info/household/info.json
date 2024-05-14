@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/household_power_consumption.csv",
+    "task": "classification"
+}

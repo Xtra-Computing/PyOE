@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/Metro_Interstate_Traffic_Volume.csv",
+    "task": "regression"
+}

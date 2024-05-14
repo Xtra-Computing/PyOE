@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/FiveCitiePMData/ShenyangPM20100101_20151231.csv",
+    "task": "regression"
+}

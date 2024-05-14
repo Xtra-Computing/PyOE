@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/usp/INSECTS-gradual_imbalanced_norm.csv",
+    "task": "classification"
+}

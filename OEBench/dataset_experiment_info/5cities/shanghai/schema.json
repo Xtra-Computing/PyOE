@@ -1,0 +1,9 @@
+{
+    "numerical": ["PM_Jingan", "PM_Xuhui", "PM_US Post", "DEWP", "HUMI", "PRES", "TEMP", "Iws", "precipitation", "Iprec"],
+    "categorical": ["cbwd"],
+    "target": ["PM_US Post"],
+    "timestamp": ["No", "year", "month", "day", "hour", "season"],
+    "null": ["PM_Jingan", "PM_Xuhui", "PM_US Post", "DEWP", "HUMI", "PRES", "TEMP", "cbwd", "Iws", "precipitation", "Iprec"],
+    "window size": 720,
+    "unnecessary": []
+}

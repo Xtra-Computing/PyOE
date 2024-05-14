@@ -1,0 +1,10 @@
+{
+    "numerical": ["Temperature", "Humidity", "Wind Speed",
+    "general diffuse flows", "diffuse flows"],
+    "categorical": [],
+    "target": ["Zone 1 Power Consumption"],
+    "timestamp": ["DateTime"],
+    "null": [],
+    "window size": 2160,
+    "unnecessary": ["Zone 2 Power Consumption", "Zone 3 Power Consumption"]
+}

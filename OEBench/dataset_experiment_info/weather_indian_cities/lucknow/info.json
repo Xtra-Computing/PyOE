@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/Temperature_And_Precipitation_Cities_IN/Lucknow_1990_2022.csv",
+    "task": "regression"
+}

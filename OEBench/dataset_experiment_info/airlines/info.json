@@ -1,0 +1,5 @@
+{
+    "schema": "schema.json",
+    "data": "dataset/usp/airlines.csv",
+    "task": "classification"
+}
