@@ -1,7 +1,13 @@
 import os
 import random
 import numpy as np
-from sklearn.metrics import roc_auc_score,accuracy_score,f1_score,auc,precision_recall_curve
+from sklearn.metrics import (
+    roc_auc_score,
+    accuracy_score,
+    f1_score,
+    auc,
+    precision_recall_curve,
+)
 
 
 def shingle(series, dim):
@@ -9,6 +15,5 @@ def shingle(series, dim):
     height = len(series) - dim + 1
     shingled = np.zeros((dim, height))
     for i in range(dim):
-        shingled[i] = series[i:i + height]
+        shingled[i] = series[i : i + height]
     return shingled
-

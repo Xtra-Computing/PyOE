@@ -1,7 +1,12 @@
 import torch
+from typing import Literal
 from sklearn.impute import IterativeImputer, KNNImputer
 
-def fill_missing_value(window_x, missing_fill):
+
+def fill_missing_value(
+    window_x: torch.Tensor, missing_fill: Literal["knn", "regression", "avg", "zero"]
+) -> torch.Tensor:
+    """this function provides a few methods to fill missing values in a dataset"""
     if missing_fill.startswith("knn"):
         num = eval(missing_fill[3:])
         imp = KNNImputer(n_neighbors=num, weights="uniform", keep_empty_features=True)
@@ -17,15 +22,20 @@ def fill_missing_value(window_x, missing_fill):
         nan_mask = torch.isnan(window_x)
         filled = torch.where(nan_mask, column_means, window_x)
         return filled
-    elif missing_fill == "zero": 
+    elif missing_fill == "zero":
         filled = torch.nan_to_num(window_x, nan=0.0)
         return filled
+    else:
+        raise ValueError(f"Filling method {fill_missing_value} is not supported.")
+
 
 class Preprocessor:
-    def __init__(self, missing_fill="zero"):
+    def __init__(
+        self, missing_fill: Literal["knn", "regression", "avg", "zero"] = "zero"
+    ):
         self.missing_fill = missing_fill
-    
-    def fill(self, x):
+
+    def fill(self, x: torch.Tensor) -> torch.Tensor:
         if torch.isnan(x).any():
             return fill_missing_value(x, self.missing_fill)
         else:

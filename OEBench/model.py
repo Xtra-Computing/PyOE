@@ -4,13 +4,13 @@ import torch.nn.functional as F
 import math
 import torchvision.models as models
 
+
 class FcNet(nn.Module):
     """
     Fully connected network for MNIST classification
     """
 
     def __init__(self, input_dim, hidden_dims, output_dim, dropout_p=0.0):
-
         super().__init__()
 
         self.input_dim = input_dim
@@ -27,20 +27,16 @@ class FcNet(nn.Module):
         for i in range(len(self.dims) - 1):
             ip_dim = self.dims[i]
             op_dim = self.dims[i + 1]
-            self.layers.append(
-                nn.Linear(ip_dim, op_dim, bias=True)
-            )
+            self.layers.append(nn.Linear(ip_dim, op_dim, bias=True, dtype=torch.float64))
 
         self.__init_net_weights__()
 
     def __init_net_weights__(self):
-
         for m in self.layers:
             m.weight.data.normal_(0.0, 0.1)
             m.bias.data.fill_(0.1)
 
     def forward(self, x):
-
         x = x.view(-1, self.input_dim)
 
         for i, layer in enumerate(self.layers):
@@ -56,13 +52,12 @@ class FcNet(nn.Module):
         return x
 
     def feature_extractor(self, x):
-
         x = x.view(-1, self.input_dim)
 
         for i, layer in enumerate(self.layers):
             if i == (len(self.layers) - 1):
                 return x
-            
+
             x = layer(x)
 
             # Do not apply ReLU on the final layer

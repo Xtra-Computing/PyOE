@@ -1091,8 +1091,7 @@ def run_pipeline(dataset_prefix_list, done=[], generated=False, return_info=Fals
         if dataset_path_prefix in done:
             continue
 
-        dataset_path_prefix = dataset_path_prefix
-        print(dataset_path_prefix)
+        logging.info(f"Processing data with prefix {dataset_path_prefix}")
         if generated:
             window_size = 500
             input = generated_dataset[dataset_path_prefix]["input"]
@@ -1114,21 +1113,20 @@ def run_pipeline(dataset_prefix_list, done=[], generated=False, return_info=Fals
             except:
                 continue
 
-            print("start pre-processing")
-        
+            logging.info(f"Start data pre-processing for {dataset_path_prefix}")
+
             if return_info:
                 target_data_nonnull, data_before_onehot, data_onehot_nonnull, original_columns, window_size, row_count, original_column_count, new_columns, new_column_count, data_one_hot = data_preprocessing(prefix + dataset_path_prefix, data_path, schema_path, task, return_info=return_info)
             else:
                 target_data_nonnull, data_before_onehot, data_onehot_nonnull, original_columns, window_size, row_count, original_column_count, new_columns, new_column_count = data_preprocessing(prefix + dataset_path_prefix, data_path, schema_path, task, return_info=return_info)
             
-            print("preprocessing done")
+            logging.info(f"Data preprocessing for {dataset_path_prefix} has been done")
+
             if task == "regression":
                 output_dim = 1
             else:
                 output_dim = np.max(target_data_nonnull) + 1
 
-        print(data_onehot_nonnull.isnull().values.any())
-        
         current_stats = pd.DataFrame(index=dataset_prefix_list, columns=["size", "#columns", 
                                                                     "ave_rows_with_missing_values_ratio_per_window", "max_rows_with_missing_values_ratio_per_window", 
                                                                     "total_rows_with_missing_values_ratio",
@@ -1156,16 +1154,16 @@ def run_pipeline(dataset_prefix_list, done=[], generated=False, return_info=Fals
                                                                     "ave_warning_percentage", "max_warning_percentage",
                                                                     "concept_drift_ratio", "adwin", "ddm", "eddm", "ave", "adwin_warning", "ddm_warning", "eddm_warning", "ave_warning"])
         
-        
+
         current_stats.loc[dataset_path_prefix]["size"] = row_count
         current_stats.loc[dataset_path_prefix]["#columns"] = original_column_count
-        
+
         overall_stats.loc[dataset_path_prefix]["size"] = row_count
         overall_stats.loc[dataset_path_prefix]["#columns"] = original_column_count
-        
+
         window_count = int(int(row_count)/int(window_size))
         print(window_count)
-        
+
         ave_rows_with_missing_values_ratio_per_window, max_rows_with_missing_values_ratio_per_window, total_rows_with_missing_values_ratio, ave_ave_null_columns_ratio, max_ave_null_columns_ratio, ave_missing_value_ratio, max_missing_value_ratio, overall_ave_null_columns_ratio, overall_missing_value_ratio = missing_value_processor(data_before_onehot, window_size, original_columns, window_count, row_count)
         
         current_stats.loc[dataset_path_prefix]["ave_rows_with_missing_values_ratio_per_window"] = ave_rows_with_missing_values_ratio_per_window
@@ -1211,8 +1209,8 @@ def run_pipeline(dataset_prefix_list, done=[], generated=False, return_info=Fals
         overall_stats.loc[dataset_path_prefix]["IForest_overall_anomaly_ratio"] = IForest_overall_anomaly_ratio
         overall_stats.loc[dataset_path_prefix]["ave_overall_anomaly_ratio"] = ave_overall_anomaly_ratio
         
-        
-        print("start multi-dimensional drift detection")
+        logging.info(f"Start multi-dimensional drift detection for {dataset_path_prefix}")
+
         hdddm_drift_percentage, kdq_drift_percentage, ave_drift_percentage, hdddm_warning_percentage, kdq_warning_percentage, ave_warning_percentage = data_drift_detector_multi_dimensional(data_onehot_nonnull, window_size, window_count)
         
         current_stats.loc[dataset_path_prefix]["hdddm_drift_percentage"] = hdddm_drift_percentage
@@ -1228,7 +1226,7 @@ def run_pipeline(dataset_prefix_list, done=[], generated=False, return_info=Fals
         overall_stats.loc[dataset_path_prefix]["hdddm_warning_percentage"] = hdddm_warning_percentage
         overall_stats.loc[dataset_path_prefix]["kdq_warning_percentage"] = kdq_warning_percentage
         overall_stats.loc[dataset_path_prefix]["ave_warning_percentage"] = ave_warning_percentage
-        
+
         print("start one-dimensional drift detection")
         ks_ave_drift_percentage, ks_max_drift_percentage, hdddm_ave_drift_percentage, hdddm_max_drift_percentage, kdq_ave_drift_percentage, kdq_max_drift_percentage, cbdb_ave_drift_percentage, cbdb_max_drift_percentage, pca_ave_drift_percentage, pca_max_drift_percentage, ave_drift_percentage, max_drift_percentage, hdddm_ave_warning_percentage, hdddm_max_warning_percentage, kdq_ave_warning_percentage, kdq_max_warning_percentage, cbdb_ave_warning_percentage, cbdb_max_warning_percentage, pca_ave_warning_percentage, pca_max_warning_percentage, ks_ave_warning_percentage, ks_max_warning_percentage, ave_warning_percentage, max_warning_percentage = data_drift_detector_one_dimensional(data_onehot_nonnull, window_size, window_count, new_columns)
         print("ks stats")
