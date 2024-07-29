@@ -12,6 +12,7 @@ coverage==7.6.0
 cycler==0.12.1
 delu==0.0.23
 einops==0.8.0
+et-xmlfile==1.1.0
 exceptiongroup==1.2.2
 fast-histogram==0.11
 flatbuffers==24.3.25
@@ -45,6 +46,7 @@ nvidia-cuda-runtime-cu11==11.7.99
 nvidia-cudnn-cu11==8.5.0.96
 nvidia-nccl-cu12==2.22.3
 oauthlib==3.2.2
+openpyxl==3.1.5
 opt-einsum==3.3.0
 packaging==24.1
 pandas==1.5.3

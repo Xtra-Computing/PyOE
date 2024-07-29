@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from utils import shingle
-from OEBench import pipeline, outliers
+from PyOE.utils import shingle
+from PyOE.OEBench import pipeline, outliers
 
 
 class Dataloader(Dataset):

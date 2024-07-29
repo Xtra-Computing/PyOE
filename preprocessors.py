@@ -1,5 +1,6 @@
 import torch
 from typing import Literal
+from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
 
 

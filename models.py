@@ -6,7 +6,7 @@ from OEBench.model import *
 from OEBench.ewc import *
 from OEBench.arf import *
 from OEBench.armnet import *
-from datasets import Dataloader
+from dataloaders import Dataloader
 from typing import Literal
 
 
