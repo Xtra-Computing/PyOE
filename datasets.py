@@ -56,7 +56,7 @@ class Dataloader(Dataset):
         max_try_time = 1
 
         # try to load the dataset, re-download if failed
-        while try_time < max_try_time:
+        while try_time <= max_try_time:
             try:
                 # prepare dataset
                 self.__prepare_dataset()
@@ -67,17 +67,19 @@ class Dataloader(Dataset):
                     self.__load_dataset()
                 # loading succeeded
                 break
-            except:
-                # error occurred when loading data
-                logging.error("Failed to load the dataset, now try to re-download it")
-                os.system(f"rm -rf {self.data_dir}")
-                try_time += 1
-
-        if try_time == max_try_time:
-            logging.error(
-                f"Failed to load the dataset after re-trying for {max_try_time} times"
-            )
-            raise RuntimeError("Failed to load the dataset")
+            except Exception as e:
+                if try_time >= max_try_time:
+                    logging.error(
+                        f"Failed to load the dataset after re-trying for {max_try_time} times"
+                    )
+                    raise e
+                else:
+                    # error occurred when loading data
+                    try_time += 1
+                    logging.error(
+                        "Failed to load the dataset, now try to re-download it"
+                    )
+                    os.system(f"rm -rf {self.data_dir}")
 
     def __prepare_dataset(self) -> None:
         if not os.path.exists(self.data_dir):
@@ -179,7 +181,9 @@ class Dataloader(Dataset):
         return self.task
 
     def __download_dataset(self) -> None:
-        logging.info("Start to download datasets...")
+        logging.info(
+            "Start to download datasets from http://137.132.83.144/yiqun/dataset.zip"
+        )
         try:
             # download from the website
             wget.download("http://137.132.83.144/yiqun/dataset.zip", out=self.data_dir)
@@ -190,16 +194,18 @@ class Dataloader(Dataset):
             wget.download(
                 "http://137.132.83.144/yiqun/OD_datasets.zip", out=self.data_dir
             )
-            logging.info("Downloading success!")
+            logging.info("Downloading finished!")
             # unzip those downloaded files
+            logging.info("Start to unzip the downloaded archive...")
             os.system(f"unzip {self.data_dir}dataset.zip -d {self.data_dir}")
             os.system(
                 f"unzip {self.data_dir}dataset_experiment_info.zip -d {self.data_dir}"
             )
             os.system(f"unzip {self.data_dir}OD_datasets.zip -d {self.data_dir}")
+            logging.info("Unzipping finished!")
         except Exception as e:
             # error occurred while downloading
-            logging.error("Downloading failed!")
+            logging.error("Obtaining datasets failed!")
             raise e
 
     def __load_dataset(self) -> None:
@@ -218,8 +224,8 @@ class Dataloader(Dataset):
                 return_info=True,
                 prefix=self.data_dir,
             )
-        except:
-            raise ValueError("Dataset not supported.")
+        except Exception as e:
+            raise e
 
         self.outlier_label = outliers.outlier_detector_marker(data_onehot_nonnull)
         self.data = data_one_hot

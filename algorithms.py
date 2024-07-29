@@ -66,6 +66,7 @@ class BasicTrainer:
         self.algorithm = algorithm
         self.epochs = epochs
         self.batch_size = batch_size
+        self.buffer_size = buffer_size
 
         if self.algorithm == "naive":
             if basic_model.get_model_type() not in ("tree", "tabnet", "gbdt"):
