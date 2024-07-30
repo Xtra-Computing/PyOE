@@ -1,12 +1,11 @@
 import torch
 import logging
-import numpy as np
-from torch import nn
 from abc import abstractmethod
-from typing import Literal, Optional
+from torch import nn
+from typing import Optional
 from .loss import *
-from ..dataloaders.base import Dataloader
-from ..models import BasicModel
+from ..models import ModelTemplate
+from ..dataloaders import Dataloader
 
 
 class TrainerTemplate:
@@ -18,8 +17,7 @@ class TrainerTemplate:
     def __init__(
         self,
         dataloader: Dataloader,
-        basic_model: BasicModel,
-        device: Literal["cpu", "cuda"] = "cpu",
+        model: ModelTemplate,
         loss: Optional[LossTemplate] = None,
         lr: float = 0.01,
         epochs: int = 1,
@@ -29,16 +27,16 @@ class TrainerTemplate:
     ) -> None:
         # basic assignments
         self.dataloader = dataloader
-        self.basic_model = basic_model
-        self.device = device
+        self.model = model
         self.lr = lr
         self.epochs = epochs
         self.batch_size = batch_size
         self.buffer_size = buffer_size
-        # task, model and net
+        # device, task, model_type and net
+        self.device = self.model.get_device()
         self.task = self.dataloader.get_task()
-        self.model = self.basic_model.get_model_type()
-        self.net = self.basic_model.get_net().to(self.device)
+        self.model_type = self.model.get_model_type()
+        self.net = self.model.get_net()
         # choose the loss function
         self.loss = loss if loss is not None else self.choose_loss_function()
 
@@ -47,12 +45,12 @@ class TrainerTemplate:
         Choose the loss function based on the task and model
         """
         if self.task == "classification":
-            if self.model in ("tree", "tabnet", "gbdt"):
+            if self.model_type in ("tree", "tabnet", "gbdt"):
                 return classification_loss_tree(self.net)
             else:
                 return classification_loss(self.net)
         elif self.task == "regression":
-            if self.model in ("tree", "tabnet", "gbdt"):
+            if self.model_type in ("tree", "tabnet", "gbdt"):
                 return regression_loss_tree(self.net)
             else:
                 return regression_loss(self.net)
@@ -89,8 +87,7 @@ class NaiveTrainer(TrainerTemplate):
     def __init__(
         self,
         dataloader: Dataloader,
-        basic_model: BasicModel,
-        device: Literal["cpu", "cuda"] = "cpu",
+        model: ModelTemplate,
         loss: Optional[LossTemplate] = None,
         lr: float = 0.01,
         epochs: int = 1,
@@ -100,8 +97,7 @@ class NaiveTrainer(TrainerTemplate):
     ) -> None:
         super().__init__(
             dataloader,
-            basic_model,
-            device,
+            model,
             loss,
             lr,
             epochs,
@@ -116,7 +112,7 @@ class NaiveTrainer(TrainerTemplate):
 
     def process_model(self):
         # choose optimizer for tree models
-        if self.model not in ("tree", "tabnet", "gbdt"):
+        if self.model_type not in ("tree", "tabnet", "gbdt"):
             self.optimizer = torch.optim.SGD(
                 filter(lambda p: p.requires_grad, self.net.parameters()),
                 lr=self.lr,
@@ -143,9 +139,9 @@ class NaiveTrainer(TrainerTemplate):
     ) -> None:
         # use the correct device for training
         X, y, y_outlier = (
-            torch.Tensor(X).to(self.device),
-            torch.Tensor(y).to(self.device),
-            torch.Tensor(y_outlier).to(self.device),
+            torch.tensor(X, dtype=torch.float).to(self.device),
+            torch.tensor(y, dtype=torch.float).to(self.device),
+            torch.tensor(y_outlier, dtype=torch.float).to(self.device),
         )
 
         # train preparation
@@ -156,18 +152,21 @@ class NaiveTrainer(TrainerTemplate):
         if need_test:
             x_tmp = dict({})
             x_tmp["value"] = X
-            x_tmp["id"] = np.repeat(np.arange(X.shape[0]), X.shape[0], axis=0).reshape(
-                X.shape[0], -1
+            x_tmp["id"] = (
+                torch.arange(X.shape[1])
+                .repeat(X.shape[0])
+                .view(X.shape[0], -1)
+                .to(self.device)
             )
             accuracy_loss = self.loss.loss(
-                x_tmp if self.model == "armnet" else X,
+                x_tmp if self.model_type == "armnet" else X,
                 y,
                 y_outlier,
             )
 
         # train the model
         length = y.shape[0]
-        if self.model == "tabnet":
+        if self.model_type == "tabnet":
             x_window = X.numpy()
             y_window = y.numpy()
             if self.task == "regression":
@@ -179,10 +178,10 @@ class NaiveTrainer(TrainerTemplate):
                 virtual_batch_size=self.batch_size,
                 max_epochs=self.epochs,
             )
-        elif self.model in ("tree", "gbdt"):
+        elif self.model_type in ("tree", "gbdt"):
             # tree model does not need epoch
             self.net.fit(X, y)
-        elif self.model in ("mlp", "armnet"):
+        elif self.model_type in ("mlp", "armnet"):
             # training for mlp and armnet with epochs times
             for epoch in range(self.epochs):
                 logging.info(f"Starting epoch {epoch + 1}/{self.epochs}")
@@ -190,22 +189,24 @@ class NaiveTrainer(TrainerTemplate):
                     # get a batch of x and y
                     batch_x = torch.tensor(
                         X[batch_ind : batch_ind + self.batch_size],
-                        dtype=torch.float64,
+                        dtype=torch.float,
                     ).to(self.device)
                     batch_y = torch.tensor(
                         y[batch_ind : batch_ind + self.batch_size],
-                        dtype=torch.float64,
+                        dtype=torch.float,
                     ).to(self.device)
 
                     # if the chosen model is "armnet", we should do something more
-                    if self.model == "armnet":
-                        x_tmp = dict({})
-                        x_tmp["value"] = batch_x
-                        # TODO：the line below is buggy
-                        x_tmp["id"] = torch.tensor(np.arange(batch_x.shape[0])).to(
-                            self.device
-                        )
-                        batch_x = x_tmp
+                    if self.model_type == "armnet":
+                        # assign id for each feature
+                        # TODO: this code shouldn't be here
+                        batch_x = {
+                            "value": batch_x,
+                            "id": torch.arange(batch_x.shape[1])
+                            .repeat(batch_x.shape[0])
+                            .view(batch_x.shape[0], -1)
+                            .to(self.device),
+                        }
 
                     # using gradient descent to optimize the parameters
                     self.optimizer.zero_grad()
@@ -216,7 +217,7 @@ class NaiveTrainer(TrainerTemplate):
                     loss.backward()
                     self.optimizer.step()
         else:
-            logging.error(f"Model not supported: {self.model}")
+            logging.error(f"Model not supported: {self.model_type}")
             raise ValueError("Model not supported.")
 
 
@@ -225,8 +226,7 @@ class IcarlTrainer(TrainerTemplate):
     def __init__(
         self,
         dataloader: Dataloader,
-        basic_model: BasicModel,
-        device: Literal["cpu", "cuda"] = "cpu",
+        model: ModelTemplate,
         loss: Optional[LossTemplate] = None,
         lr: float = 0.01,
         epochs: int = 1,
@@ -236,8 +236,7 @@ class IcarlTrainer(TrainerTemplate):
     ) -> None:
         super().__init__(
             dataloader,
-            basic_model,
-            device,
+            model,
             loss,
             lr,
             epochs,
@@ -251,8 +250,8 @@ class IcarlTrainer(TrainerTemplate):
 
     def process_model(self):
         # tree model is not supported for this algorithm
-        if self.model in ("tree", "tabnet", "gbdt"):
-            logging.error(f"Model not supported: {self.model}")
+        if self.model_type in ("tree", "tabnet", "gbdt"):
+            logging.error(f"Model not supported: {self.model_type}")
             raise ValueError("ICaRL does not support tree model.")
 
         # choose optimizer for the algorithm
@@ -281,8 +280,8 @@ class IcarlTrainer(TrainerTemplate):
         **kargws,
     ) -> None:
         # ICaRL requires the model to be trained with NN model
-        if self.model not in ("mlp"):
-            logging.error(f"Model not supported: {self.model}")
+        if self.model_type not in ("mlp"):
+            logging.error(f"Model not supported: {self.model_type}")
             raise ValueError("ICaRL only supports NN model.")
 
         length = y.shape[0]
