@@ -27,7 +27,7 @@ class FcNet(nn.Module):
         for i in range(len(self.dims) - 1):
             ip_dim = self.dims[i]
             op_dim = self.dims[i + 1]
-            self.layers.append(nn.Linear(ip_dim, op_dim, bias=True, dtype=torch.float64))
+            self.layers.append(nn.Linear(ip_dim, op_dim, bias=True, dtype=torch.float))
 
         self.__init_net_weights__()
 

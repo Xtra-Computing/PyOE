@@ -2,7 +2,6 @@ import torch
 import logging
 from abc import abstractmethod
 from torch import nn
-from typing import Optional
 from .loss import *
 from ..models import ModelTemplate
 from ..dataloaders import Dataloader
@@ -18,7 +17,6 @@ class TrainerTemplate:
         self,
         dataloader: Dataloader,
         model: ModelTemplate,
-        loss: Optional[LossTemplate] = None,
         lr: float = 0.01,
         epochs: int = 1,
         batch_size: int = 64,
@@ -37,28 +35,6 @@ class TrainerTemplate:
         self.task = self.dataloader.get_task()
         self.model_type = self.model.get_model_type()
         self.net = self.model.get_net()
-        # choose the loss function
-        self.loss = loss if loss is not None else self.choose_loss_function()
-
-    def choose_loss_function(self) -> LossTemplate:
-        """
-        Choose the loss function based on the task and model
-        """
-        if self.task == "classification":
-            if self.model_type in ("tree", "tabnet", "gbdt"):
-                return classification_loss_tree(self.net)
-            else:
-                return classification_loss(self.net)
-        elif self.task == "regression":
-            if self.model_type in ("tree", "tabnet", "gbdt"):
-                return regression_loss_tree(self.net)
-            else:
-                return regression_loss(self.net)
-        else:
-            logging.error(f"Task not supported: {self.task}")
-            raise ValueError(
-                "Task not supported. TrainTemplate only supports classification and regression now."
-            )
 
     @abstractmethod
     def process_model(self) -> None:
@@ -83,12 +59,15 @@ class TrainerTemplate:
 
 
 class NaiveTrainer(TrainerTemplate):
+    """
+    This class is a training wrapper for the model. It will call the
+    model's preprocessing and training function to train the model.
+    """
 
     def __init__(
         self,
         dataloader: Dataloader,
         model: ModelTemplate,
-        loss: Optional[LossTemplate] = None,
         lr: float = 0.01,
         epochs: int = 1,
         batch_size: int = 64,
@@ -98,36 +77,14 @@ class NaiveTrainer(TrainerTemplate):
         super().__init__(
             dataloader,
             model,
-            loss,
             lr,
             epochs,
             batch_size,
             buffer_size,
             **kargws,
         )
-        # choose the loss function
-        self.loss = loss if loss is not None else self.choose_loss_function()
         # preprocess the model
-        self.process_model()
-
-    def process_model(self):
-        # choose optimizer for tree models
-        if self.model_type not in ("tree", "tabnet", "gbdt"):
-            self.optimizer = torch.optim.SGD(
-                filter(lambda p: p.requires_grad, self.net.parameters()),
-                lr=self.lr,
-            )
-
-        # choose criterion for different tasks
-        if self.task == "classification":
-            self.criterion = nn.CrossEntropyLoss().to(self.device)
-        elif self.task == "regression":
-            self.criterion = nn.MSELoss().to(self.device)
-        else:
-            logging.error(f"Task not supported: {self.task}")
-            raise ValueError(
-                "Task not supported. BasicTrainer only supports classification and regression now."
-            )
+        self.model.process_model(lr=self.lr)
 
     def train(
         self,
@@ -144,90 +101,20 @@ class NaiveTrainer(TrainerTemplate):
             torch.tensor(y_outlier, dtype=torch.float).to(self.device),
         )
 
-        # train preparation
-        if self.task == "classification":
-            y = y.long()
-
-        # test preparation
-        if need_test:
-            x_tmp = dict({})
-            x_tmp["value"] = X
-            x_tmp["id"] = (
-                torch.arange(X.shape[1])
-                .repeat(X.shape[0])
-                .view(X.shape[0], -1)
-                .to(self.device)
-            )
-            accuracy_loss = self.loss.loss(
-                x_tmp if self.model_type == "armnet" else X,
-                y,
-                y_outlier,
-            )
-
         # train the model
-        length = y.shape[0]
-        if self.model_type == "tabnet":
-            x_window = X.numpy()
-            y_window = y.numpy()
-            if self.task == "regression":
-                y_window = y_window.reshape(-1, 1)
-            self.net.fit(
-                x_window,
-                y_window,
-                batch_size=self.batch_size,
-                virtual_batch_size=self.batch_size,
-                max_epochs=self.epochs,
-            )
-        elif self.model_type in ("tree", "gbdt"):
-            # tree model does not need epoch
-            self.net.fit(X, y)
-        elif self.model_type in ("mlp", "armnet"):
-            # training for mlp and armnet with epochs times
-            for epoch in range(self.epochs):
-                logging.info(f"Starting epoch {epoch + 1}/{self.epochs}")
-                for batch_ind in range(0, length, self.batch_size):
-                    # get a batch of x and y
-                    batch_x = torch.tensor(
-                        X[batch_ind : batch_ind + self.batch_size],
-                        dtype=torch.float,
-                    ).to(self.device)
-                    batch_y = torch.tensor(
-                        y[batch_ind : batch_ind + self.batch_size],
-                        dtype=torch.float,
-                    ).to(self.device)
-
-                    # if the chosen model is "armnet", we should do something more
-                    if self.model_type == "armnet":
-                        # assign id for each feature
-                        # TODO: this code shouldn't be here
-                        batch_x = {
-                            "value": batch_x,
-                            "id": torch.arange(batch_x.shape[1])
-                            .repeat(batch_x.shape[0])
-                            .view(batch_x.shape[0], -1)
-                            .to(self.device),
-                        }
-
-                    # using gradient descent to optimize the parameters
-                    self.optimizer.zero_grad()
-                    # the loss function require 0D or 1D tensors for input
-                    out: torch.Tensor = self.net(batch_x).reshape(-1)
-                    ref: torch.Tensor = batch_y.reshape(-1)
-                    loss = self.criterion(out, ref)
-                    loss.backward()
-                    self.optimizer.step()
-        else:
-            logging.error(f"Model not supported: {self.model_type}")
-            raise ValueError("Model not supported.")
+        self.model.train_naive(X, y, y_outlier, self.batch_size, self.epochs, need_test)
 
 
 class IcarlTrainer(TrainerTemplate):
+    """
+    This class is a training wrapper for the model. It will call the
+    model's preprocessing and training function to train the model.
+    """
 
     def __init__(
         self,
         dataloader: Dataloader,
         model: ModelTemplate,
-        loss: Optional[LossTemplate] = None,
         lr: float = 0.01,
         epochs: int = 1,
         batch_size: int = 64,
@@ -237,7 +124,6 @@ class IcarlTrainer(TrainerTemplate):
         super().__init__(
             dataloader,
             model,
-            loss,
             lr,
             epochs,
             batch_size,
