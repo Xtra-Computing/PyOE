@@ -196,13 +196,133 @@ class MlpModel(ModelTemplate):
         y_outlier: torch.Tensor,
         batch_size: int,
         epochs: int,
+        buffer_size: int,
         need_test: bool = False,
     ):
         """
         This function iCaRL implements the training process for MLP model.
         """
-        # TODO: implement the training process for iCaRL
-        pass
+        X, y, y_outlier, batch_size, epochs, buffer_size = self.__train_icarl_header(
+            X, y, y_outlier, batch_size, epochs, buffer_size, need_test
+        )
+        self.__train_icarl_body(
+            X, y, y_outlier, batch_size, epochs, buffer_size, need_test
+        )
+        self.__train_icarl_footer(
+            X, y, y_outlier, batch_size, epochs, buffer_size, need_test
+        )
+
+    def __train_icarl_header(
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        y_outlier: torch.Tensor,
+        batch_size: int,
+        epochs: int,
+        buffer_size: int,
+        need_test: bool = False,
+    ):
+        self.x_example = None
+        self.y_example = None
+        # TODO: need_test is not used in this function
+
+        return (X, y, y_outlier, batch_size, epochs, buffer_size)
+
+    def __train_icarl_body(
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        y_outlier: torch.Tensor,
+        batch_size: int,
+        epochs: int,
+        buffer_size: int,
+        need_test: bool = False,
+    ):
+        # train epochs times
+        for epoch in range(epochs):
+            logging.info(f"Starting epoch {epoch + 1}/{epochs}")
+            # train the model with batch_size each time
+            for batch_ind in range(0, y.shape[0], batch_size):
+                batch_x = X[batch_ind : batch_ind + batch_size].to(self.device)
+                batch_y = y[batch_ind : batch_ind + batch_size].to(self.device)
+                # zero the gradient
+                self.optimizer.zero_grad()
+                out = self.net(batch_x)
+                if self.task == "regression":
+                    out = out.reshape(-1)
+                # calculate the loss
+                loss = self.criterion(out, batch_y)
+                if self.x_example is not None:
+                    out_e = self.net(self.x_example)
+                    loss += self.criterion(out_e, self.y_example)
+                # backward and optimize
+                loss.backward()
+                self.optimizer.step()
+
+    def __train_icarl_footer(
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        y_outlier: torch.Tensor,
+        batch_size: int,
+        epochs: int,
+        buffer_size: int,
+        need_test: bool = False,
+    ):
+        # prepare some variables here
+        examples = [[] for _ in range(self.output_dim)]
+        buffer_class = int(buffer_size / self.output_dim)
+
+        # post processing
+        if self.task == "regression":
+            if self.x_example is None:
+                features = self.net.feature_extractor(X).detach()
+                avg = torch.mean(features, dim=0).unsqueeze(0)
+                distance = torch.norm(features - avg, dim=1)
+                _, indices = torch.topk(distance, k=buffer_size, largest=False)
+                self.x_example = X[indices].to(self.device)
+                self.y_example = y[indices].to(self.device)
+        elif self.task == "classification":
+            update = False
+            # iterate over all output dimensions
+            for i in range(self.output_dim):
+                if len(examples[i]) < buffer_class and i in y:
+                    # get some information of the current class
+                    data_class = X[y == i]
+                    features = self.net.feature_extractor(data_class).detach()
+                    avg = torch.mean(features, dim=0).unsqueeze(0)
+                    distance = torch.norm(features - avg, dim=1)
+                    _, indices = torch.topk(
+                        distance,
+                        k=min(buffer_class - len(examples[i]), len(distance)),
+                        largest=False,
+                    )
+                    self.examples[i] = (
+                        data_class[indices]
+                        if len(examples[i]) == 0
+                        else torch.cat((examples[i], data_class[indices]), dim=0)
+                    )
+                    update = True
+
+            # if update is needed
+            if update:
+                self.x_example = []
+                for i in range(self.output_dim):
+                    if len(examples[i]) == 0:
+                        continue
+                    if len(self.x_example) == 0:
+                        self.x_example = examples[i]
+                        self.y_example = torch.ones(examples[i].shape[0]) * i
+                    else:
+                        self.x_example = torch.cat((self.x_example, examples[i]), dim=0)
+                        self.y_example = torch.cat(
+                            (self.y_example, torch.ones(examples[i].shape[0]) * i),
+                            dim=0,
+                        )
+
+                # convert the data type of y to long and move the data to device
+                self.x_example = self.x_example.to(self.device)
+                self.y_example = self.y_example.long().to(self.device)
 
 
 class TreeModel(ModelTemplate):
@@ -318,6 +438,7 @@ class TreeModel(ModelTemplate):
         y_outlier: torch.Tensor,
         batch_size: int,
         epochs: int,
+        buffer_size: int,
         need_test: bool = False,
     ):
         """
@@ -440,6 +561,7 @@ class GbdtModel(ModelTemplate):
         y_outlier: torch.Tensor,
         batch_size: int,
         epochs: int,
+        buffer_size: int,
         need_test: bool = False,
     ):
         """
@@ -572,6 +694,7 @@ class TabnetModel(ModelTemplate):
         y_outlier: torch.Tensor,
         batch_size: int,
         epochs: int,
+        buffer_size: int,
         need_test: bool = False,
     ):
         """
@@ -736,6 +859,7 @@ class ArmnetModel(ModelTemplate):
         y_outlier: torch.Tensor,
         batch_size: int,
         epochs: int,
+        buffer_size: int,
         need_test: bool = False,
     ):
         """
