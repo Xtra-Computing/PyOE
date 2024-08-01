@@ -37,13 +37,6 @@ class TrainerTemplate:
         self.net = self.model.get_net()
 
     @abstractmethod
-    def process_model(self) -> None:
-        """
-        This is the function to process the model. You can implement your own model processing function here.
-        """
-        pass
-
-    @abstractmethod
     def train(
         self,
         X: torch.Tensor,
@@ -152,3 +145,12 @@ class IcarlTrainer(TrainerTemplate):
         self.model.train_icarl(
             X, y, y_outlier, self.batch_size, self.epochs, self.buffer_size, need_test
         )
+
+
+class ClusterTrainer(TrainerTemplate):
+
+    def __init__(self, dataloader: Dataloader, model: ModelTemplate, **kargws) -> None:
+        super().__init__(dataloader, model, **kargws)
+
+    def train(self, X: torch.Tensor, **kwargs) -> None:
+        self.model.train_cluster(X)

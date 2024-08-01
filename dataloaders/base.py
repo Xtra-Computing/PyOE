@@ -79,7 +79,7 @@ class Dataloader(Dataset):
                     logging.error(
                         "Failed to load the dataset, now try to re-download it"
                     )
-                    os.system(f"rm -rf {self.data_dir}")
+                    # os.system(f"rm -rf {self.data_dir}")
 
     def __prepare_dataset(self) -> None:
         if not os.path.exists(self.data_dir):

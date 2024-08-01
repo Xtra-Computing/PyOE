@@ -1,6 +1,7 @@
 import logging
 from abc import abstractmethod
 from typing import Literal
+from torch.utils.data import DataLoader as TorchDataLoader
 from pytorch_tabnet.tab_model import TabNetClassifier, TabNetRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
@@ -8,6 +9,7 @@ from OEBench.model import *
 from OEBench.ewc import *
 from OEBench.arf import *
 from OEBench.armnet import *
+from .networks import *
 from ..algorithms.loss import *
 from ..dataloaders import Dataloader
 
@@ -157,20 +159,20 @@ class MlpModel(ModelTemplate):
         for epoch in range(epochs):
             # logging some information for each epoch
             logging.info(f"Starting epoch {epoch + 1}/{epochs}")
-            for batch_ind in range(0, y.shape[0], batch_size):
+            # use torch.utils.data.DataLoader to load the data
+            x_loader = TorchDataLoader(X, batch_size=batch_size)
+            y_loader = TorchDataLoader(y, batch_size=batch_size)
+
+            for x_batch, y_batch in zip(x_loader, y_loader):
                 # get a batch of x and y
-                batch_x = torch.tensor(
-                    X[batch_ind : batch_ind + batch_size], dtype=torch.float
-                ).to(self.device)
-                batch_y = torch.tensor(
-                    y[batch_ind : batch_ind + batch_size], dtype=torch.float
-                ).to(self.device)
+                x_batch = x_batch.to(self.device).float()
+                y_batch = y_batch.to(self.device).float()
 
                 # using gradient descent to optimize the parameters
                 self.optimizer.zero_grad()
                 # the loss function require 0D or 1D tensors for input
-                out: torch.Tensor = self.net(batch_x).reshape(-1)
-                ref: torch.Tensor = batch_y.reshape(-1)
+                out: torch.Tensor = self.net(x_batch).reshape(-1)
+                ref: torch.Tensor = y_batch.reshape(-1)
                 loss = self.criterion(out, ref)
                 loss.backward()
                 self.optimizer.step()
@@ -241,17 +243,22 @@ class MlpModel(ModelTemplate):
         # train epochs times
         for epoch in range(epochs):
             logging.info(f"Starting epoch {epoch + 1}/{epochs}")
-            # train the model with batch_size each time
-            for batch_ind in range(0, y.shape[0], batch_size):
-                batch_x = X[batch_ind : batch_ind + batch_size].to(self.device)
-                batch_y = y[batch_ind : batch_ind + batch_size].to(self.device)
+            # use torch.utils.data.DataLoader to load the data
+            x_loader = TorchDataLoader(X, batch_size=batch_size)
+            y_loader = TorchDataLoader(y, batch_size=batch_size)
+
+            for x_batch, y_batch in zip(x_loader, y_loader):
+                # get a batch of x and y
+                x_batch = x_batch.to(self.device)
+                y_batch = y_batch.to(self.device)
+
                 # zero the gradient
                 self.optimizer.zero_grad()
-                out = self.net(batch_x)
+                out = self.net(x_batch)
                 if self.task == "regression":
                     out = out.reshape(-1)
                 # calculate the loss
-                loss = self.criterion(out, batch_y)
+                loss = self.criterion(out, y_batch)
                 if self.x_example is not None:
                     out_e = self.net(self.x_example)
                     loss += self.criterion(out_e, self.y_example)
@@ -818,22 +825,20 @@ class ArmnetModel(ModelTemplate):
         for epoch in range(epochs):
             # logging some information for each epoch
             logging.info(f"Starting epoch {epoch + 1}/{epochs}")
-            for batch_ind in range(0, y.shape[0], batch_size):
+            # use torch.utils.data.DataLoader to load the data
+            x_loader = TorchDataLoader(X, batch_size=batch_size)
+            y_loader = TorchDataLoader(y, batch_size=batch_size)
+
+            for x_batch, y_batch in zip(x_loader, y_loader):
                 # get a batch of x and y
-                batch_y = torch.tensor(
-                    y[batch_ind : batch_ind + batch_size], dtype=torch.float
-                ).to(self.device)
-                batch_x = self.__preprocess_x(
-                    torch.tensor(
-                        X[batch_ind : batch_ind + batch_size], dtype=torch.float
-                    )
-                )
+                x_batch = self.__preprocess_x(x_batch.to(self.device).float())
+                y_batch = y_batch.to(self.device).float()
 
                 # using gradient descent to optimize the parameters
                 self.optimizer.zero_grad()
                 # the loss function require 0D or 1D tensors for input
-                out: torch.Tensor = self.net(batch_x).reshape(-1)
-                ref: torch.Tensor = batch_y.reshape(-1)
+                out: torch.Tensor = self.net(x_batch).reshape(-1)
+                ref: torch.Tensor = y_batch.reshape(-1)
                 loss = self.criterion(out, ref)
                 loss.backward()
                 self.optimizer.step()
@@ -867,3 +872,28 @@ class ArmnetModel(ModelTemplate):
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
+
+
+class CluStreamModel(ModelTemplate):
+    """
+    A simple CluStream model for clustering tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "clustream"
+        self.net = CluStreamNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_cluster(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)

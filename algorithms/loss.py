@@ -40,8 +40,8 @@ class classification_loss(LossTemplate):
         **kwargs,
     ):
         # calculate the predicted label
-        out = self.net(x_window)
-        _, pred_label = torch.max(out.data, 1)
+        out: torch.Tensor = self.net(x_window)
+        _, pred_label = torch.max(out.data.view(y_window.shape[0], -1), 1)
 
         # calculate the accuracy
         if y_outlier is None:
