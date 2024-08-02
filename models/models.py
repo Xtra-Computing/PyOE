@@ -897,3 +897,203 @@ class CluStreamModel(ModelTemplate):
 
     def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X)
+
+
+class DbStreamModel(ModelTemplate):
+    """
+    A simple DBStream model for clustering tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "dbstream"
+        self.net = DbStreamNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_cluster(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class DenStreamModel(ModelTemplate):
+    """
+    A simple DenStream model for clustering tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "denstream"
+        self.net = DenStreamNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_cluster(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class StreamKMeansModel(ModelTemplate):
+    """
+    A simple StreamKMeans model for clustering tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "streamkmeans"
+        self.net = StreamKMeansNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_cluster(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class XStreamDetectorModel(ModelTemplate):
+    """
+    A simple XStreamDetector model for outlier detection tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "xstream"
+        self.net = XStreamDetectorNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_outlier(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class RShashDetectorModel(ModelTemplate):
+    """
+    A simple RShashDetector model for outlier detection tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "rshash"
+        self.net = RShashDetectorNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_outlier(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class HSTreeDetectorModel(ModelTemplate):
+    """
+    A simple HSTreeDetector model for outlier detection tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "hstree"
+        self.net = HSTreeDetectorNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_outlier(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class LodaDetectorModel(ModelTemplate):
+    """
+    A simple LodaDetector model for outlier detection tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "loda"
+        self.net = LodaDetectorNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_outlier(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)
+
+
+class RrcfDetectorModel(ModelTemplate):
+    """
+    A simple RrcfDetector model for outlier detection tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu"] = "cpu",
+    ):
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "rrcf"
+        self.net = RrcfDetectorNet()
+
+    def process_model(self, **kwargs):
+        pass
+
+    def train_outlier(self, X: torch.Tensor):
+        self.net.fit(X)
+
+    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X)

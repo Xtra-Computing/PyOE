@@ -1,7 +1,5 @@
 import torch
-import logging
 from abc import abstractmethod
-from torch import nn
 from .loss import *
 from ..models import ModelTemplate
 from ..dataloaders import Dataloader
@@ -148,6 +146,12 @@ class IcarlTrainer(TrainerTemplate):
 
 
 class ClusterTrainer(TrainerTemplate):
+    """
+    This class is a training wrapper for the model. It will call the
+    model's training function to train the model. Actually ClusterModel
+    is trained in an online manner, so we don't need to train it in a batch
+    manner.
+    """
 
     def __init__(self, dataloader: Dataloader, model: ModelTemplate, **kargws) -> None:
         super().__init__(dataloader, model, **kargws)

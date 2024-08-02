@@ -49,7 +49,7 @@ oauthlib==3.2.2
 openpyxl==3.1.5
 opt-einsum==3.3.0
 packaging==24.1
-pandas==1.5.3
+pandas==2.2.2
 patsy==0.5.6
 pillow==10.4.0
 pip==24.0
@@ -68,6 +68,7 @@ pytz==2024.1
 pyudorandom==1.0.0
 requests==2.32.3
 requests-oauthlib==2.0.0
+river==0.21.2
 rrcf==0.4.4
 rsa==4.9
 rtdl==0.0.13
@@ -94,6 +95,7 @@ torch==1.13.1
 torchvision==0.14.1
 tqdm==4.66.4
 typing_extensions==4.12.2
+tzdata==2024.1
 urllib3==2.2.2
 Werkzeug==3.0.3
 wget==3.2
