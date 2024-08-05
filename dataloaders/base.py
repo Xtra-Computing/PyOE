@@ -96,9 +96,16 @@ class Dataloader(Dataset):
 
     def __getitem__(self, idx, return_outlier_label=False):
         if return_outlier_label == False:
-            return (self.data[idx], self.target[idx])
+            return (
+                torch.tensor(self.data.iloc[idx]),
+                torch.tensor(self.target.iloc[idx]),
+            )
         else:
-            return (self.data[idx], self.target[idx], self.outlier_label[idx])
+            return (
+                torch.tensor(self.data.iloc[idx]),
+                torch.tensor(self.target.iloc[idx]),
+                torch.tensor(self.outlier_label.iloc[idx]),
+            )
 
     def reach_end(self) -> bool:
         return self.current_index >= self.num_samples

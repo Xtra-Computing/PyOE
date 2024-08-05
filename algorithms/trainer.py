@@ -1,6 +1,11 @@
 import torch
+import logging
+import torch.distributed as dist
 from abc import abstractmethod
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from .loss import *
+from ..preprocessors import Preprocessor
 from ..models import ModelTemplate
 from ..dataloaders import Dataloader
 
@@ -81,7 +86,7 @@ class NaiveTrainer(TrainerTemplate):
         self,
         X: torch.Tensor,
         y: torch.Tensor,
-        y_outlier: torch.Tensor,
+        y_outlier: torch.Tensor = None,
         need_test: bool = False,
         **kargws,
     ) -> None:
@@ -89,7 +94,11 @@ class NaiveTrainer(TrainerTemplate):
         X, y, y_outlier = (
             torch.tensor(X, dtype=torch.float).to(self.device),
             torch.tensor(y, dtype=torch.float).to(self.device),
-            torch.tensor(y_outlier, dtype=torch.float).to(self.device),
+            (
+                None
+                if y_outlier is None
+                else torch.tensor(y_outlier, dtype=torch.float).to(self.device)
+            ),
         )
 
         # train the model
@@ -128,7 +137,7 @@ class IcarlTrainer(TrainerTemplate):
         self,
         X: torch.Tensor,
         y: torch.Tensor,
-        y_outlier: torch.Tensor,
+        y_outlier: torch.Tensor = None,
         need_test: bool = False,
         **kargws,
     ) -> None:
@@ -136,7 +145,11 @@ class IcarlTrainer(TrainerTemplate):
         X, y, y_outlier = (
             torch.tensor(X, dtype=torch.float).to(self.device),
             torch.tensor(y, dtype=torch.float).to(self.device),
-            torch.tensor(y_outlier, dtype=torch.float).to(self.device),
+            (
+                None
+                if y_outlier is None
+                else torch.tensor(y_outlier, dtype=torch.float).to(self.device)
+            ),
         )
 
         # train the model
@@ -158,3 +171,43 @@ class ClusterTrainer(TrainerTemplate):
 
     def train(self, X: torch.Tensor, **kwargs) -> None:
         self.model.train_cluster(X)
+
+
+class MultiProcessTrainer:
+    """
+    This is a multi-process training function. It will create a distributed
+    dataloader and train the model using the distributed data.
+    """
+
+    def __init__(
+        self,
+        world_size: int,
+        dataloader: Dataloader,
+        trainer: TrainerTemplate,
+        preprocessor: Preprocessor,
+    ):
+        self.world_size = world_size
+        self.dataloader = dataloader
+        self.trainer = trainer
+        self.preprocessor = preprocessor
+
+    def _train(self, rank: int):
+        # initialize the process group
+        dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
+
+        # create the dataloader using DistributedSampler
+        sampler = DistributedSampler(
+            self.dataloader, num_replicas=self.world_size, rank=rank
+        )
+        torch_dataloader = DataLoader(
+            self.dataloader, sampler=sampler, batch_size=self.trainer.batch_size
+        )
+
+        logging.info(f"Process {rank} starts with {len(torch_dataloader)} batches.")
+        # train the model
+        for X, y in torch_dataloader:
+            X = self.preprocessor.fill(X)
+            self.trainer.train(X, y, None, need_test=False)
+
+    def train(self):
+        torch.multiprocessing.spawn(self._train, nprocs=self.world_size)
