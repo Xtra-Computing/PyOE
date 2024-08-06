@@ -95,17 +95,15 @@ class Dataloader(Dataset):
         return self.num_samples
 
     def __getitem__(self, idx, return_outlier_label=False):
-        if return_outlier_label == False:
-            return (
-                torch.tensor(self.data.iloc[idx]),
-                torch.tensor(self.target.iloc[idx]),
-            )
-        else:
-            return (
-                torch.tensor(self.data.iloc[idx]),
-                torch.tensor(self.target.iloc[idx]),
-                torch.tensor(self.outlier_label.iloc[idx]),
-            )
+        return (
+            torch.tensor(self.data.iloc[idx]),
+            torch.tensor(self.target.iloc[idx]),
+            (
+                torch.tensor(self.outlier_label[idx])
+                if return_outlier_label
+                else torch.tensor([])
+            ),
+        )
 
     def reach_end(self) -> bool:
         return self.current_index >= self.num_samples
@@ -420,3 +418,19 @@ class Dataloader(Dataset):
             "OD_datasets/pima",
             "OD_datasets/satellite",
         ]
+
+
+class DataloaderWrapper(Dataset):
+    """
+    This class is a wrapper for the dataset. It will call the dataset to get the data and target.
+    """
+
+    def __init__(self, dataset: Dataloader, return_outlier_label=False):
+        self.dataset = dataset
+        self.return_outlier_label = return_outlier_label
+
+    def __getitem__(self, idx: int):
+        return self.dataset.__getitem__(idx, self.return_outlier_label)
+
+    def __len__(self):
+        return self.dataset.__len__()

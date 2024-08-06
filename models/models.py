@@ -175,6 +175,9 @@ class MlpModel(ModelTemplate):
                 ref: torch.Tensor = y_batch.reshape(-1)
                 loss = self.criterion(out, ref)
                 loss.backward()
+
+                # using gradient clipping to avoid gradient explosion
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), max_norm=1.0)
                 self.optimizer.step()
 
     def __train_naive_footer(
@@ -331,6 +334,18 @@ class MlpModel(ModelTemplate):
                 self.x_example = self.x_example.to(self.device)
                 self.y_example = self.y_example.long().to(self.device)
 
+    def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
+        """
+        This function is used to calculate the loss of the model.
+        """
+        # calculate the loss
+        out = self.net(X)
+        if self.task == "regression":
+            out = out.reshape(-1)
+        loss = self.criterion(out, y)
+
+        return loss.item()
+
 
 class TreeModel(ModelTemplate):
     """
@@ -454,6 +469,16 @@ class TreeModel(ModelTemplate):
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
 
+    def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
+        """
+        This function is used to calculate the loss of the model.
+        """
+        # calculate the loss
+        out = torch.tensor(self.net.predict(X)).reshape(-1).to(self.device).float()
+        loss = self.criterion(out, y.reshape(-1).float())
+
+        return loss.item()
+
 
 class GbdtModel(ModelTemplate):
     """
@@ -576,6 +601,18 @@ class GbdtModel(ModelTemplate):
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
+
+    def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
+        """
+        This function is used to calculate the loss of the model.
+        """
+        # calculate the loss
+        out = self.net.predict(X)
+        if self.task == "classification":
+            y = y.long()
+        loss = self.criterion(out, y)
+
+        return loss.item()
 
 
 class TabnetModel(ModelTemplate):
@@ -710,6 +747,23 @@ class TabnetModel(ModelTemplate):
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
 
+    def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
+        """
+        This function is used to calculate the loss of the model.
+        """
+        # preprocess the input data according to the task
+        if self.task == "regression":
+            y = y.reshape(-1, 1)
+        # if the task is classification, we should convert the data type of y to long
+        elif self.task == "classification":
+            y = y.long()
+
+        # calculate the loss
+        out = self.net.predict(X)
+        loss = self.criterion(out, y)
+
+        return loss.item()
+
 
 class ArmnetModel(ModelTemplate):
     """
@@ -841,6 +895,9 @@ class ArmnetModel(ModelTemplate):
                 ref: torch.Tensor = y_batch.reshape(-1)
                 loss = self.criterion(out, ref)
                 loss.backward()
+
+                # using gradient clipping to avoid gradient explosion
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), max_norm=1.0)
                 self.optimizer.step()
 
     def __train_naive_footer(
@@ -872,6 +929,16 @@ class ArmnetModel(ModelTemplate):
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
+
+    def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
+        """
+        This function is used to calculate the loss of the model.
+        """
+        # calculate the loss
+        out = self.net(self.__preprocess_x(X))
+        loss = self.criterion(out.reshape(-1), y.reshape(-1))
+
+        return loss.item()
 
 
 class CluStreamModel(ModelTemplate):

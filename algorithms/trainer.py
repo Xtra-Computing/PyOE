@@ -7,7 +7,7 @@ from torch.utils.data.distributed import DistributedSampler
 from .loss import *
 from ..preprocessors import Preprocessor
 from ..models import ModelTemplate
-from ..dataloaders import Dataloader
+from ..dataloaders import Dataloader, DataloaderWrapper
 
 
 class TrainerTemplate:
@@ -191,23 +191,26 @@ class MultiProcessTrainer:
         self.trainer = trainer
         self.preprocessor = preprocessor
 
-    def _train(self, rank: int):
+    def _train(self, rank: int, need_test: bool):
         # initialize the process group
         dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
 
+        # using a wrapper dataloader to handle the parameter need_test
+        wrapper = DataloaderWrapper(self.dataloader, need_test)
+
         # create the dataloader using DistributedSampler
-        sampler = DistributedSampler(
-            self.dataloader, num_replicas=self.world_size, rank=rank
-        )
+        sampler = DistributedSampler(wrapper, num_replicas=self.world_size, rank=rank)
         torch_dataloader = DataLoader(
-            self.dataloader, sampler=sampler, batch_size=self.trainer.batch_size
+            wrapper, sampler=sampler, batch_size=self.trainer.batch_size
         )
 
         logging.info(f"Process {rank} starts with {len(torch_dataloader)} batches.")
         # train the model
-        for X, y in torch_dataloader:
+        for X, y, outlier_label in torch_dataloader:
             X = self.preprocessor.fill(X)
-            self.trainer.train(X, y, None, need_test=False)
+            self.trainer.train(X, y, outlier_label, need_test=need_test)
 
-    def train(self):
-        torch.multiprocessing.spawn(self._train, nprocs=self.world_size)
+    def train(self, need_test=False):
+        torch.multiprocessing.spawn(
+            self._train, nprocs=self.world_size, args=(need_test,)
+        )
