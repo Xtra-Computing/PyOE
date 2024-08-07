@@ -242,6 +242,44 @@ class ClusterTrainer(TrainerTemplate):
         self._time_end()
 
 
+class OutlierTrainer(TrainerTemplate):
+    """
+    This class is a training wrapper for the model. It will call the
+    model's training function to train the model. Actually OutlierModel
+    is trained in an online manner, so we don't need to train it in a batch
+    manner.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        model: ModelTemplate,
+        preprocessor: Preprocessor,
+        **kargws,
+    ) -> None:
+        super().__init__(dataloader, model, preprocessor, **kargws)
+
+    def _train(self, X: torch.Tensor, **kwargs) -> None:
+        self.model.train_outlier(X)
+
+    def train(self, need_test: bool = False) -> None:
+        self._time_start()
+
+        # load data using the dataloader
+        torch_dataloader = TorchDataLoader(
+            DataloaderWrapper(self.dataloader, need_test),
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
+
+        # train the model
+        for X, _, _ in torch_dataloader:
+            X = self.preprocessor.fill(X)
+            self._train(X, need_test=need_test)
+
+        self._time_end()
+
+
 class MultiProcessTrainer(TrainerTemplate):
     """
     This is a multi-process training function. It will create a distributed
