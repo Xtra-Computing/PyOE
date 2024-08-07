@@ -1,8 +1,9 @@
+import time
 import torch
 import logging
 import torch.distributed as dist
 from abc import abstractmethod
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader as TorchDataLoader
 from torch.utils.data.distributed import DistributedSampler
 from .loss import *
 from ..preprocessors import Preprocessor
@@ -20,6 +21,7 @@ class TrainerTemplate:
         self,
         dataloader: Dataloader,
         model: ModelTemplate,
+        preprocessor: Preprocessor,
         lr: float = 0.01,
         epochs: int = 1,
         batch_size: int = 64,
@@ -29,6 +31,7 @@ class TrainerTemplate:
         # basic assignments
         self.dataloader = dataloader
         self.model = model
+        self.preprocessor = preprocessor
         self.lr = lr
         self.epochs = epochs
         self.batch_size = batch_size
@@ -38,20 +41,25 @@ class TrainerTemplate:
         self.task = self.dataloader.get_task()
         self.model_type = self.model.get_model_type()
         self.net = self.model.get_net()
+        # results of the last time
+        self.running_time: float | None = None
 
     @abstractmethod
-    def train(
-        self,
-        X: torch.Tensor,
-        y: torch.Tensor,
-        y_outlier: torch.Tensor,
-        need_test: bool = False,
-        **kargws,
-    ) -> None:
+    def train(self, need_test: bool = False) -> None:
         """
         This is the training function. You can implement your own training function here.
         """
         pass
+
+    def _time_start(self):
+        self.start_time = time.time()
+
+    def _time_end(self):
+        self.running_time = time.time() - self.start_time
+        logging.info(f"Training time: {self.running_time:.2f} seconds.")
+
+    def get_last_training_time(self) -> float | None:
+        return self.running_time
 
 
 class NaiveTrainer(TrainerTemplate):
@@ -64,6 +72,7 @@ class NaiveTrainer(TrainerTemplate):
         self,
         dataloader: Dataloader,
         model: ModelTemplate,
+        preprocessor: Preprocessor,
         lr: float = 0.01,
         epochs: int = 1,
         batch_size: int = 64,
@@ -73,6 +82,7 @@ class NaiveTrainer(TrainerTemplate):
         super().__init__(
             dataloader,
             model,
+            preprocessor,
             lr,
             epochs,
             batch_size,
@@ -82,14 +92,14 @@ class NaiveTrainer(TrainerTemplate):
         # preprocess the model
         self.model.process_model(lr=self.lr)
 
-    def train(
+    def _train(
         self,
         X: torch.Tensor,
         y: torch.Tensor,
-        y_outlier: torch.Tensor = None,
+        y_outlier: torch.Tensor,
         need_test: bool = False,
-        **kargws,
-    ) -> None:
+        **kwargs,
+    ):
         # use the correct device for training
         X, y, y_outlier = (
             torch.tensor(X, dtype=torch.float).to(self.device),
@@ -104,6 +114,23 @@ class NaiveTrainer(TrainerTemplate):
         # train the model
         self.model.train_naive(X, y, y_outlier, self.batch_size, self.epochs, need_test)
 
+    def train(self, need_test: bool = False) -> None:
+        self._time_start()
+
+        # load data using the dataloader
+        torch_dataloader = TorchDataLoader(
+            DataloaderWrapper(self.dataloader, need_test),
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
+
+        # train the model
+        for X, y, y_outlier in torch_dataloader:
+            X = self.preprocessor.fill(X)
+            self._train(X, y, y_outlier, need_test=need_test)
+
+        self._time_end()
+
 
 class IcarlTrainer(TrainerTemplate):
     """
@@ -115,6 +142,7 @@ class IcarlTrainer(TrainerTemplate):
         self,
         dataloader: Dataloader,
         model: ModelTemplate,
+        preprocessor: Preprocessor,
         lr: float = 0.01,
         epochs: int = 1,
         batch_size: int = 64,
@@ -124,6 +152,7 @@ class IcarlTrainer(TrainerTemplate):
         super().__init__(
             dataloader,
             model,
+            preprocessor,
             lr,
             epochs,
             batch_size,
@@ -133,7 +162,7 @@ class IcarlTrainer(TrainerTemplate):
         # preprocess the model
         self.model.process_model(lr=self.lr)
 
-    def train(
+    def _train(
         self,
         X: torch.Tensor,
         y: torch.Tensor,
@@ -157,6 +186,23 @@ class IcarlTrainer(TrainerTemplate):
             X, y, y_outlier, self.batch_size, self.epochs, self.buffer_size, need_test
         )
 
+    def train(self, need_test: bool = False) -> None:
+        self._time_start()
+
+        # load data using the dataloader
+        torch_dataloader = TorchDataLoader(
+            DataloaderWrapper(self.dataloader, need_test),
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
+
+        # train the model
+        for X, y, y_outlier in torch_dataloader:
+            X = self.preprocessor.fill(X)
+            self._train(X, y, y_outlier, need_test=need_test)
+
+        self._time_end()
+
 
 class ClusterTrainer(TrainerTemplate):
     """
@@ -166,14 +212,37 @@ class ClusterTrainer(TrainerTemplate):
     manner.
     """
 
-    def __init__(self, dataloader: Dataloader, model: ModelTemplate, **kargws) -> None:
-        super().__init__(dataloader, model, **kargws)
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        model: ModelTemplate,
+        preprocessor: Preprocessor,
+        **kargws,
+    ) -> None:
+        super().__init__(dataloader, model, preprocessor, **kargws)
 
-    def train(self, X: torch.Tensor, **kwargs) -> None:
+    def _train(self, X: torch.Tensor, **kwargs) -> None:
         self.model.train_cluster(X)
 
+    def train(self, need_test: bool = False) -> None:
+        self._time_start()
 
-class MultiProcessTrainer:
+        # load data using the dataloader
+        torch_dataloader = TorchDataLoader(
+            DataloaderWrapper(self.dataloader, need_test),
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
+
+        # train the model
+        for X, _, _ in torch_dataloader:
+            X = self.preprocessor.fill(X)
+            self._train(X, need_test=need_test)
+
+        self._time_end()
+
+
+class MultiProcessTrainer(TrainerTemplate):
     """
     This is a multi-process training function. It will create a distributed
     dataloader and train the model using the distributed data.
@@ -200,7 +269,7 @@ class MultiProcessTrainer:
 
         # create the dataloader using DistributedSampler
         sampler = DistributedSampler(wrapper, num_replicas=self.world_size, rank=rank)
-        torch_dataloader = DataLoader(
+        torch_dataloader = TorchDataLoader(
             wrapper, sampler=sampler, batch_size=self.trainer.batch_size
         )
 
@@ -208,9 +277,14 @@ class MultiProcessTrainer:
         # train the model
         for X, y, outlier_label in torch_dataloader:
             X = self.preprocessor.fill(X)
-            self.trainer.train(X, y, outlier_label, need_test=need_test)
+            self.trainer._train(X, y, outlier_label, need_test=need_test)
 
     def train(self, need_test=False):
+        self._time_start()
+
+        # start the multi-process training
         torch.multiprocessing.spawn(
             self._train, nprocs=self.world_size, args=(need_test,)
         )
+
+        self._time_end()

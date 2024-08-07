@@ -136,11 +136,6 @@ class MlpModel(ModelTemplate):
         if self.task == "classification":
             y = y.long()
 
-        # test preparation
-        if need_test:
-            accuracy_loss = self.loss.loss(X, y, y_outlier)
-            logging.info(f"Current accuracy loss: {accuracy_loss}")
-
         return (X, y, y_outlier, batch_size, epochs)
 
     def __train_naive_body(
@@ -192,7 +187,10 @@ class MlpModel(ModelTemplate):
         """
         This function is used to postprocess the model after training.
         """
-        pass
+        # test preparation
+        if need_test:
+            accuracy_loss = self.loss.loss(X, y, y_outlier)
+            logging.info(f"Current accuracy loss: {accuracy_loss}")
 
     def train_icarl(
         self,
@@ -417,11 +415,6 @@ class TreeModel(ModelTemplate):
         if self.task == "classification":
             y = y.long()
 
-        # test preparation
-        if need_test:
-            accuracy_loss = self.loss.loss(X, y, y_outlier)
-            logging.info(f"Current accuracy loss: {accuracy_loss}")
-
         return (X, y, y_outlier, batch_size, epochs)
 
     def __train_naive_body(
@@ -451,7 +444,10 @@ class TreeModel(ModelTemplate):
         """
         This function is used to postprocess the model after training.
         """
-        pass
+        # test preparation
+        if need_test:
+            accuracy_loss = self.loss.loss(X, y, y_outlier)
+            logging.info(f"Current accuracy loss: {accuracy_loss}")
 
     def train_icarl(
         self,
@@ -550,11 +546,6 @@ class GbdtModel(ModelTemplate):
         if self.task == "classification":
             y = y.long()
 
-        # test preparation
-        if need_test:
-            accuracy_loss = self.loss.loss(X, y, y_outlier)
-            logging.info(f"Current accuracy loss: {accuracy_loss}")
-
         return (X, y, y_outlier, batch_size, epochs)
 
     def __train_naive_body(
@@ -584,7 +575,10 @@ class GbdtModel(ModelTemplate):
         """
         This function is used to postprocess the model after training.
         """
-        pass
+        # test preparation
+        if need_test:
+            accuracy_loss = self.loss.loss(X, y, y_outlier)
+            logging.info(f"Current accuracy loss: {accuracy_loss}")
 
     def train_icarl(
         self,
@@ -684,16 +678,11 @@ class TabnetModel(ModelTemplate):
             y = y.reshape(-1, 1)
         # if the task is classification, we should convert the data type of y to long
         elif self.task == "classification":
-            y = y.long()
-
-        # test preparation
-        if need_test:
-            accuracy_loss = self.loss.loss(X, y, y_outlier)
-            logging.info(f"Current accuracy loss: {accuracy_loss}")
+            y = y.long().reshape(-1)
 
         # transit the data type of X and y to numpy array
-        X: np.ndarray = X.numpy()
-        y: np.ndarray = y.numpy()
+        X: np.ndarray = X.cpu().numpy()
+        y: np.ndarray = y.cpu().numpy()
 
         return (X, y, y_outlier, batch_size, epochs)
 
@@ -729,7 +718,10 @@ class TabnetModel(ModelTemplate):
         """
         This function is used to postprocess the model after training.
         """
-        pass
+        # test preparation
+        if need_test:
+            accuracy_loss = self.loss.loss(X, y, y_outlier)
+            logging.info(f"Current accuracy loss: {accuracy_loss}")
 
     def train_icarl(
         self,
@@ -751,16 +743,9 @@ class TabnetModel(ModelTemplate):
         """
         This function is used to calculate the loss of the model.
         """
-        # preprocess the input data according to the task
-        if self.task == "regression":
-            y = y.reshape(-1, 1)
-        # if the task is classification, we should convert the data type of y to long
-        elif self.task == "classification":
-            y = y.long()
-
         # calculate the loss
-        out = self.net.predict(X)
-        loss = self.criterion(out, y)
+        out = torch.tensor(self.net.predict(X)).reshape(-1)
+        loss = self.criterion(out.float(), y.reshape(-1).float())
 
         return loss.item()
 
@@ -856,11 +841,6 @@ class ArmnetModel(ModelTemplate):
         if self.task == "classification":
             y = y.long()
 
-        # test preparation
-        if need_test:
-            accuracy_loss = self.loss.loss(self.__preprocess_x(X), y, y_outlier)
-            logging.info(f"Current accuracy loss: {accuracy_loss}")
-
         return (X, y, y_outlier, batch_size, epochs)
 
     def __train_naive_body(
@@ -912,7 +892,10 @@ class ArmnetModel(ModelTemplate):
         """
         This function is used to postprocess the model after training.
         """
-        pass
+        # test preparation
+        if need_test:
+            accuracy_loss = self.loss.loss(self.__preprocess_x(X), y, y_outlier)
+            logging.info(f"Current accuracy loss: {accuracy_loss}")
 
     def train_icarl(
         self,
