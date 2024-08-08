@@ -1054,9 +1054,9 @@ def concept_drift(task, data, target, window_size, window_count):
 
         if ddm.drift_state == "drift":
             ddm_count += 1
-
             retrain_start = ddm.retraining_recs[0] + training_size
             retrain_end = ddm.retraining_recs[1] + training_size
+
             if (
                 retrain_start == retrain_end
             ):  # minimum retraining window in case of sudden drift
@@ -1077,12 +1077,9 @@ def concept_drift(task, data, target, window_size, window_count):
 
         if eddm.drift_state == "drift":
             eddm_count += 1
-            try:
-                retrain_start = eddm.retraining_recs[0] + training_size
-                retrain_end = eddm.retraining_recs[1] + training_size
-            except:
-                retrain_start = eddm.retraining_recs[0] + training_size
-                retrain_end = eddm.retraining_recs[1] + training_size
+            retrain_start = eddm.retraining_recs[0] + training_size
+            retrain_end = eddm.retraining_recs[1] + training_size
+
             if (
                 retrain_start == retrain_end
             ):  # minimum retraining window in case of sudden drift

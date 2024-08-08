@@ -118,7 +118,6 @@ class OutlierDetectorNet(nn.Module):
         """
         Predict cluster assignments for the input data.
         """
-        # print(X.numpy(), X.numpy().tolist())
         return {
             "labels": self.outlier_detector_marker(X),
             "scores": torch.tensor(
