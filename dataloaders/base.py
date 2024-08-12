@@ -53,7 +53,7 @@ class Dataloader(Dataset):
     def __load_dataset_with_error_checking(self) -> None:
         # prepare some varibles here
         try_time = 0
-        max_try_time = 1
+        max_try_time = 0
 
         # try to load the dataset, re-download if failed
         while try_time <= max_try_time:
@@ -96,8 +96,8 @@ class Dataloader(Dataset):
 
     def __getitem__(self, idx, return_outlier_label=False):
         return (
-            torch.tensor(self.data.iloc[idx]),
-            torch.tensor(self.target.iloc[idx]),
+            torch.tensor(self.data[idx]),
+            torch.tensor(self.target[idx]),
             (
                 torch.tensor(self.outlier_label[idx])
                 if return_outlier_label
@@ -111,29 +111,13 @@ class Dataloader(Dataset):
     def get_next_sample(self, return_outlier_label: bool = False):
         if return_outlier_label == False:
             value = (
-                torch.tensor(
-                    self.data[
-                        self.current_index : self.current_index + self.window_size
-                    ].values
-                ),
-                torch.tensor(
-                    self.target[
-                        self.current_index : self.current_index + self.window_size
-                    ].values
-                ),
+                self.data[self.current_index : self.current_index + self.window_size],
+                self.target[self.current_index : self.current_index + self.window_size],
             )
         else:
             value = (
-                torch.tensor(
-                    self.data[
-                        self.current_index : self.current_index + self.window_size
-                    ].values
-                ),
-                torch.tensor(
-                    self.target[
-                        self.current_index : self.current_index + self.window_size
-                    ].values
-                ),
+                self.data[self.current_index : self.current_index + self.window_size],
+                self.target[self.current_index : self.current_index + self.window_size],
                 torch.tensor(
                     self.outlier_label[
                         self.current_index : self.current_index + self.window_size
@@ -232,9 +216,11 @@ class Dataloader(Dataset):
         except Exception as e:
             raise e
 
-        self.outlier_label = outliers.outlier_detector_marker(data_onehot_nonnull)
-        self.data = data_one_hot
-        self.target = target_data_nonnull
+        self.outlier_label = outliers.outlier_detector_marker(
+            data_onehot_nonnull.astype(float)
+        )
+        self.data = torch.tensor(data_one_hot.values)
+        self.target = torch.tensor(target_data_nonnull.values)
         self.task = task
 
         self.num_samples = overall_stats.loc[self.dataset_name]["size"]

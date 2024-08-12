@@ -1397,7 +1397,9 @@ def run_pipeline(
             ECOD_overall_anomaly_ratio,
             IForest_overall_anomaly_ratio,
             ave_overall_anomaly_ratio,
-        ) = outlier_detector(data_onehot_nonnull, window_size, window_count)
+        ) = outlier_detector(
+            data_onehot_nonnull.astype(float), window_size, window_count
+        )
         logging.info("Outlier detection finished")
 
         # those fields with respect to anomaly to be assigned
@@ -1426,7 +1428,7 @@ def run_pipeline(
             kdq_warning_percentage,
             ave_warning_percentage,
         ) = data_drift_detector_multi_dimensional(
-            data_onehot_nonnull, window_size, window_count
+            data_onehot_nonnull.astype(float), window_size, window_count
         )
         logging.info("Multi-dimensional drift detection finished")
 
@@ -1471,7 +1473,7 @@ def run_pipeline(
             ave_warning_percentage,
             max_warning_percentage,
         ) = data_drift_detector_one_dimensional(
-            data_onehot_nonnull, window_size, window_count, new_columns
+            data_onehot_nonnull.astype(float), window_size, window_count, new_columns
         )
         logging.info("One-dimensional drift detection finished")
 
