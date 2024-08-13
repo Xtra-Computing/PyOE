@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 from typing import Optional
 from abc import abstractmethod
@@ -43,15 +44,28 @@ class classification_loss(LossTemplate):
         out: torch.Tensor = self.net(x_window)
         _, pred_label = torch.max(out.data.view(y_window.shape[0], -1), 1)
 
+        # make sure all tensors are on the same device
+        device = x_window.device
+
         # calculate the accuracy
         if y_outlier is None:
-            acc = (pred_label == y_window).sum().item() / y_window.shape[0]
+            acc = (
+                torch.tensor(
+                    [y_window[i][pred_label[i]] for i in np.arange(y_window.shape[0])],
+                    device=device,
+                )
+                .sum()
+                .item()
+                / y_window.shape[0]
+            )
         else:
             acc = (
-                (pred_label == y_window)
-                * (1 - y_outlier).sum().item()
-                / (y_window.shape[0] - y_outlier.sum().item())
-            )
+                torch.tensor(
+                    [y_window[i][pred_label[i]] for i in np.arange(y_window.shape[0])],
+                    device=device,
+                )
+                * (1 - y_outlier)
+            ).sum().item() / (y_window.shape[0] - y_outlier.sum().item())
 
         return 1 - acc
 
@@ -73,13 +87,21 @@ class classification_loss_tree(LossTemplate):
 
         # calculate the accuracy
         if y_outlier is None:
-            acc = (pred_label == y_window).sum().item() / y_window.shape[0]
+            acc = (
+                torch.tensor(
+                    [y_window[i][pred_label[i]] for i in np.arange(y_window.shape[0])]
+                )
+                .sum()
+                .item()
+                / y_window.shape[0]
+            )
         else:
             acc = (
-                (pred_label == y_window)
-                * (1 - y_outlier).sum().item()
-                / (y_window.shape[0] - y_outlier.sum().item())
-            )
+                torch.tensor(
+                    [y_window[i][pred_label[i]] for i in np.arange(y_window.shape[0])]
+                )
+                * (1 - y_outlier)
+            ).sum().item() / (y_window.shape[0] - y_outlier.sum().item())
 
         return 1 - acc
 

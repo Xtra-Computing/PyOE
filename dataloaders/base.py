@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from PyOE.utils import shingle
-from PyOE.OEBench import pipeline, outliers
+from .pipeline import load_data
 
 
 class Dataloader(Dataset):
@@ -142,18 +142,6 @@ class Dataloader(Dataset):
     def get_outlier_ratio(self) -> float:
         return self.outlier_ratio
 
-    def get_missing_value_ratio(self) -> float:
-        return self.missing_value_ratio
-
-    def get_data_drift_ratio(self) -> float:
-        return self.data_drift_ratio
-
-    def get_concept_drift_ratio(self) -> float:
-        return self.concept_drift_ratio
-
-    def get_drift_ratio(self) -> float:
-        return (self.data_drift_ratio + self.concept_drift_ratio) / 2
-
     def get_window_size(self) -> int:
         return self.window_size
 
@@ -200,7 +188,6 @@ class Dataloader(Dataset):
     def __load_dataset(self) -> None:
         try:
             (
-                overall_stats,
                 target_data_nonnull,
                 data_before_onehot,
                 data_onehot_nonnull,
@@ -208,34 +195,28 @@ class Dataloader(Dataset):
                 output_dim,
                 data_one_hot,
                 task,
-            ) = pipeline.run_pipeline(
-                dataset_prefix_list=[self.dataset_name],
-                return_info=True,
+            ) = load_data(
+                dataset_path=self.dataset_name,
                 prefix=self.data_dir,
             )
         except Exception as e:
             raise e
 
-        self.outlier_label = outliers.outlier_detector_marker(
+        # import at Runtime to avoid circular import
+        from ..models import OutlierDetectorNet
+
+        self.outlier_label = OutlierDetectorNet.outlier_detector_marker(
             data_onehot_nonnull.astype(float)
         )
-        self.data = torch.tensor(data_one_hot.values)
-        self.target = torch.tensor(target_data_nonnull.values)
+        self.data = torch.tensor(data_one_hot.astype(float).values)
+        self.target = torch.tensor(target_data_nonnull.astype(float).values)
         self.task = task
 
-        self.num_samples = overall_stats.loc[self.dataset_name]["size"]
+        self.num_samples = data_one_hot.shape[0]
         self.num_columns = data_one_hot.shape[1]
-        self.output_dim = target_data_nonnull.shape[1]
+        self.output_dim = output_dim
         self.window_size = window_size if self.window_size == 0 else self.window_size
         self.outlier_ratio = np.sum(self.outlier_label) / self.num_samples
-        self.data_drift_ratio, self.concept_drift_ratio, self.missing_value_ratio = (
-            overall_stats.loc[self.dataset_name][key]
-            for key in [
-                "ave_drift_percentage",
-                "concept_drift_ratio",
-                "overall missing value ratio",
-            ]
-        )
 
     def __load_od_dataset(self) -> None:
         if self.dataset_name == "OD_datasets/NSL":

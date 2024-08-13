@@ -1,8 +1,9 @@
 import torch
 from abc import abstractmethod
+from sklearn.linear_model import LinearRegression
 from torch.utils.data import DataLoader
 from menelaus.concept_drift import DDM
-from ..models import ModelTemplate
+from ..models import ModelTemplate, MlpModel
 from ..dataloaders import Dataloader
 
 
@@ -12,9 +13,9 @@ class MetricTemplate:
     functions and you can also implement your own metric function using this template.
     """
 
-    def __init__(self, model: ModelTemplate, dataloader: Dataloader, **kwargs):
-        self.model = model
+    def __init__(self, dataloader: Dataloader, model: ModelTemplate, **kwargs):
         self.dataloader = dataloader
+        self.model = model
 
     @abstractmethod
     def measure(self, **kwargs) -> float:
@@ -23,8 +24,8 @@ class MetricTemplate:
 
 class EffectivenessMetric(MetricTemplate):
 
-    def __init__(self, model: ModelTemplate, dataloader: Dataloader, **kwargs):
-        super().__init__(model, dataloader, **kwargs)
+    def __init__(self, dataloader: Dataloader, model: ModelTemplate, **kwargs):
+        super().__init__(dataloader, model, **kwargs)
 
     def measure(self, **kwargs) -> float:
         loss = 0.0
@@ -45,39 +46,47 @@ class DriftDelayMetric(MetricTemplate):
 
     def __init__(
         self,
-        model: ModelTemplate,
         dataloader: Dataloader,
-        n_threshold: int = 5,
+        model=LinearRegression(),
+        n_threshold: int = 30,
         warning_scale: int = 2,
         drift_scale: int = 3,
         **kwargs,
     ):
-        super().__init__(model, dataloader, **kwargs)
+        super().__init__(dataloader, model, **kwargs)
         self.ddm = DDM(
             n_threshold=n_threshold,
             warning_scale=warning_scale,
             drift_scale=drift_scale,
         )
 
+        self.__init_model()
+
+    def __init_model(self):
+        X, y = self.dataloader.get_next_sample()
+        self.model.fit(X, y)
+
     def measure(self, ground_truth: list[int] | None = None) -> float | list[int]:
         # load data from dataloader
-        torch_dataloader = DataLoader(self.dataloader, batch_size=1, shuffle=True)
+        torch_dataloader = DataLoader(self.dataloader, batch_size=1, shuffle=False)
 
         drift_index = []
         drift_length = 0.0
         for idx, (X, y, _) in enumerate(torch_dataloader):
             # calculate the predicted value and update DDM model
-            X, y = X.to(self.model.device).float(), y.to(self.model.device).float()
-            # TODO: the code below is not compatible with some model interfaces
-            predict_y = self.model.net(X)
-            true_y = y.cpu().detach().numpy()
+            predict_y = self.model.predict(X)
+            true_y = y.cpu().detach().numpy().item()
 
             # ensure predict_y is a numpy array
             if isinstance(predict_y, torch.Tensor):
                 predict_y = predict_y.cpu().detach().numpy()
+            predict_y = predict_y.item()
+
+            # update and continue
+            self.ddm.update(true_y, predict_y)
+            self.model.fit(X, y)
 
             # check if the model is in drift state
-            self.ddm.update(true_y, predict_y)
             if self.ddm.drift_state == "drift":
                 drift_index.append(idx)
                 if ground_truth is not None:

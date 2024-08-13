@@ -107,23 +107,19 @@ class OutlierDetectorNet(nn.Module):
         # multiply the anomaly index and return
         return functools.reduce(operator.mul, anomaly_list)
 
-    def fit(self, X: torch.Tensor) -> None:
-        """
-        Learn from the data one by one.
-        """
-        for x in X.numpy():
-            self.model.fit(x)
-
-    def forward(self, X: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
         Predict cluster assignments for the input data.
         """
-        return {
-            "labels": self.outlier_detector_marker(X),
-            "scores": torch.tensor(
-                [self.model.score(x) for x in X.numpy()], dtype=torch.float
-            ),
-        }
+        return self.outlier_detector_marker(X)
+
+    def get_model_score(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Using a stream model to get the anomaly score, and with this function
+        you could compare the result with the ground truth to evaluate the model.
+        """
+        scores = [self.model.fit(x).score(x) for x in X.cpu().detach().numpy()]
+        return torch.tensor(scores, dtype=torch.float)
 
 
 class XStreamDetectorNet(OutlierDetectorNet):

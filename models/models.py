@@ -1042,10 +1042,10 @@ class XStreamDetectorModel(ModelTemplate):
     def process_model(self, **kwargs):
         pass
 
-    def train_outlier(self, X: torch.Tensor):
-        self.net.fit(X)
+    def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net.get_model_score(X)
 
-    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+    def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X)
 
 
@@ -1067,10 +1067,10 @@ class RShashDetectorModel(ModelTemplate):
     def process_model(self, **kwargs):
         pass
 
-    def train_outlier(self, X: torch.Tensor):
-        self.net.fit(X)
+    def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net.get_model_score(X)
 
-    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+    def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X)
 
 
@@ -1092,10 +1092,10 @@ class HSTreeDetectorModel(ModelTemplate):
     def process_model(self, **kwargs):
         pass
 
-    def train_outlier(self, X: torch.Tensor):
-        self.net.fit(X)
+    def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net.get_model_score(X)
 
-    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+    def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X)
 
 
@@ -1117,10 +1117,10 @@ class LodaDetectorModel(ModelTemplate):
     def process_model(self, **kwargs):
         pass
 
-    def train_outlier(self, X: torch.Tensor):
-        self.net.fit(X)
+    def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net.get_model_score(X)
 
-    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+    def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X)
 
 
@@ -1142,8 +1142,8 @@ class RrcfDetectorModel(ModelTemplate):
     def process_model(self, **kwargs):
         pass
 
-    def train_outlier(self, X: torch.Tensor):
-        self.net.fit(X)
+    def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net.get_model_score(X)
 
-    def predict_outlier(self, X: torch.Tensor) -> torch.Tensor:
+    def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X)

@@ -19,6 +19,7 @@ from menelaus.ensemble.ensemble import BatchEnsemble
 from statistics import mean
 from scipy import stats
 
+from sklearn.preprocessing import OneHotEncoder
 from skmultiflow.data import (
     SEAGenerator,
     HyperplaneGenerator,
@@ -79,7 +80,6 @@ def data_preprocessing(
         raise ValueError(f"{data_path}: data format not supported")
 
     total_columns = data.columns
-    row_count = data.shape[0]
     original_column_count = data.shape[1]
     original_data = data
 
@@ -99,46 +99,52 @@ def data_preprocessing(
     logging.info("Sorting finished")
 
     original_data = data
-    data_before_onehot = data
     target_data = data[target]
+
+    data = data.drop(unnecessary, axis=1)
+    data = data.drop(timestamp, axis=1)
+
+    data_one_hot = data.drop(target, axis=1)  # data without target
+    data_one_hot = pd.get_dummies(data_one_hot, columns=categorical)  # no target
+
+    new_columns = data_one_hot.columns
+    new_column_count = new_columns.shape[0]
+    logging.info(f"Columns after one hot encoding: {new_columns.tolist()}")
 
     # one hot encoding for different tasks
     if task == "classification":
+        # factorize the target data
         target_data[target[0]] = pd.factorize(target_data[target[0]])[0]
-        output_dim = max(target_data[target[0]]) + 1
+        # define one hot encoder
+        one_hot_encoder = OneHotEncoder(sparse_output=False)
+        y_one_hot = one_hot_encoder.fit_transform(target_data[[target[0]]])
+        # update the output dimension
+        output_dim = y_one_hot.shape[1]
+        target = [f"{target[0]}_{i}" for i in range(output_dim)]
+        target_data = pd.DataFrame(y_one_hot, columns=target)
     elif task == "regression":
         output_dim = 1
     else:
         logging.error(f"Task {task} is not supported")
         raise ValueError(f"{task}: task not supported")
 
-    data = data.drop(unnecessary, axis=1)
-    data = data.drop(timestamp, axis=1)
+    # # TODO: the codes below are not all-around?
+    # if delete_null_target:
+    #     return (
+    #         pd.DataFrame(data_one_hot),
+    #         pd.DataFrame(target_data),
+    #         window_size,
+    #         task,
+    #         new_column_count,
+    #         output_dim,
+    #     )
 
-    data_temp = data
-    data_temp = data_temp.drop(target, axis=1)  # data without target
-    data_one_hot = pd.get_dummies(data_temp, columns=categorical)  # no target
-
-    new_columns = data_one_hot.columns
-    new_column_count = new_columns.shape[0]
-    logging.info(f"Columns after one hot encoding: {new_columns.tolist()}")
-
-    if delete_null_target:
-        return (
-            pd.DataFrame(data_one_hot),
-            pd.DataFrame(target_data),
-            window_size,
-            task,
-            new_column_count,
-            output_dim,
-        )
-
-    # TODO: add a check for the existence of the file
-    # try:
-    #    data_onehot_nonnull_path = dataset_path_prefix+'/onehot_nonnull.csv'
-    #    data_onehot_nonnull = pd.read_csv(data_onehot_nonnull_path)
-    # except:
+    # check for the existence of the file
     logging.info("Start null values processing")
+    # if os.path.exists(dataset_path_prefix + "/onehot_nonnull.csv"):
+    #     data_onehot_nonnull_path = dataset_path_prefix + "/onehot_nonnull.csv"
+    #     data_onehot_nonnull = pd.read_csv(data_onehot_nonnull_path)
+    # else:
     if data.isna().values.any():
         # join target columns to the one hot data
         logging.info("The dataset has null values")
@@ -161,58 +167,35 @@ def data_preprocessing(
         # inpute the null values
         data_onehot_nonnull = imp.fit_transform(data_one_hot)
         data_onehot_nonnull = pd.DataFrame(data_onehot_nonnull)
-        data_onehot_nonnull = pd.concat(
-            [
-                data_onehot_nonnull.reset_index(drop=True),
-                target_data.reset_index(drop=True),
-            ],
-            axis=1,
-        )
-        # now we have the data without null values
         assert not data_onehot_nonnull.isnull().values.any()
     else:
         logging.info("The dataset has no null values")
         data_onehot_nonnull = data_one_hot
-        data_onehot_nonnull[target] = target_data
     logging.info("Null values processing finished")
 
+    # add the target back to the data
+    concat_data = [
+        data_onehot_nonnull.reset_index(drop=True),
+        target_data.reset_index(drop=True),
+    ]
+    whole_data_one_hot = pd.concat(concat_data, axis=1)
+
     # output the data without null values to a csv file
-    data_onehot_nonnull_path = dataset_path_prefix + "/onehot_nonnull.csv"
-    data_onehot_nonnull.to_csv(data_onehot_nonnull_path, mode="w")
+    whole_data_one_hot_path = dataset_path_prefix + "/onehot_nonnull.csv"
+    whole_data_one_hot.to_csv(whole_data_one_hot_path, mode="w")
 
-    target_data = data_onehot_nonnull[target]
-    target_data = pd.DataFrame(target_data, columns=target)
-
-    data_onehot_nonnull = data_onehot_nonnull.drop(target, axis=1)
-    data_onehot_nonnull.columns = new_columns
-    row_count = data_onehot_nonnull.shape[0]
-
-    # TODO: what does return_info mean?
-    if return_info:
-        return (
-            pd.DataFrame(target_data),
-            pd.DataFrame(original_data),
-            pd.DataFrame(data_onehot_nonnull),
-            total_columns,
-            window_size,
-            row_count,
-            original_column_count,
-            new_columns,
-            new_column_count,
-            pd.DataFrame(data_one_hot),
-        )
-    else:
-        return (
-            pd.DataFrame(target_data),
-            pd.DataFrame(original_data),
-            pd.DataFrame(data_onehot_nonnull),
-            total_columns,
-            window_size,
-            row_count,
-            original_column_count,
-            new_columns,
-            new_column_count,
-        )
+    return (
+        pd.DataFrame(target_data),
+        pd.DataFrame(original_data),
+        pd.DataFrame(data_onehot_nonnull),
+        total_columns,
+        window_size,
+        data_onehot_nonnull.shape[0],
+        original_column_count,
+        new_columns,
+        new_column_count,
+        pd.DataFrame(data_one_hot) if return_info else None,
+    )
 
 
 def missing_value_processor(data, window_size, total_columns, window_count, row_count):
@@ -1299,51 +1282,30 @@ def run_pipeline(
                 continue
 
             logging.info(f"Start data pre-processing for {dataset_path_prefix}")
-
-            if return_info:
-                (
-                    target_data_nonnull,
-                    data_before_onehot,
-                    data_onehot_nonnull,
-                    original_columns,
-                    window_size,
-                    row_count,
-                    original_column_count,
-                    new_columns,
-                    new_column_count,
-                    data_one_hot,
-                ) = data_preprocessing(
-                    prefix + dataset_path_prefix,
-                    data_path,
-                    schema_path,
-                    task,
-                    return_info=return_info,
-                )
-            else:
-                (
-                    target_data_nonnull,
-                    data_before_onehot,
-                    data_onehot_nonnull,
-                    original_columns,
-                    window_size,
-                    row_count,
-                    original_column_count,
-                    new_columns,
-                    new_column_count,
-                ) = data_preprocessing(
-                    prefix + dataset_path_prefix,
-                    data_path,
-                    schema_path,
-                    task,
-                    return_info=return_info,
-                )
-
+            (
+                target_data_nonnull,
+                data_before_onehot,
+                data_onehot_nonnull,
+                original_columns,
+                window_size,
+                row_count,
+                original_column_count,
+                new_columns,
+                new_column_count,
+                data_one_hot,
+            ) = data_preprocessing(
+                prefix + dataset_path_prefix,
+                data_path,
+                schema_path,
+                task,
+                return_info=return_info,
+            )
             logging.info(f"Data preprocessing for {dataset_path_prefix} has been done")
 
             if task == "regression":
                 output_dim = 1
             else:
-                output_dim = np.max(target_data_nonnull) + 1
+                output_dim = len(target_data_nonnull.columns)
 
         current_stats.loc[dataset_path_prefix]["size"] = row_count
         current_stats.loc[dataset_path_prefix]["#columns"] = original_column_count
