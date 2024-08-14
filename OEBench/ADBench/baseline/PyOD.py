@@ -1,4 +1,4 @@
-from ADBench.myutils import Utils
+from ..myutils import Utils
 import numpy as np
 
 #add the baselines from the pyod package

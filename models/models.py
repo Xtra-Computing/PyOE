@@ -5,10 +5,10 @@ from torch.utils.data import DataLoader as TorchDataLoader
 from pytorch_tabnet.tab_model import TabNetClassifier, TabNetRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
-from OEBench.model import *
-from OEBench.ewc import *
-from OEBench.arf import *
-from OEBench.armnet import *
+from ..OEBench.model import *
+from ..OEBench.ewc import *
+from ..OEBench.arf import *
+from ..OEBench.armnet import *
 from .networks import *
 from ..algorithms.loss import *
 from ..dataloaders import Dataloader

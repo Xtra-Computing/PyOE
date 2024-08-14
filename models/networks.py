@@ -4,7 +4,7 @@ import functools
 import numpy as np
 from torch import nn
 from river import cluster, stream
-from OEBench.ADBench.baseline.PyOD import PYOD
+from ..OEBench.ADBench.baseline.PyOD import PYOD
 from streamad.model import (
     xStreamDetector,
     RShashDetector,
