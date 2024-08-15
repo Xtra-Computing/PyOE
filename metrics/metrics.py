@@ -3,7 +3,7 @@ from abc import abstractmethod
 from sklearn.linear_model import LinearRegression
 from torch.utils.data import DataLoader
 from menelaus.concept_drift import DDM
-from ..models import ModelTemplate, MlpModel
+from ..models import ModelTemplate
 from ..dataloaders import Dataloader
 
 

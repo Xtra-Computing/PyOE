@@ -1,3 +1,4 @@
+import os
 import time
 import torch
 import logging
@@ -307,6 +308,7 @@ class MultiProcessTrainer(TrainerTemplate):
     def _train(self, rank: int, need_test: bool):
         # initialize the process group
         dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
 
         # using a wrapper dataloader to handle the parameter need_test
         wrapper = DataloaderWrapper(self.dataloader, need_test)

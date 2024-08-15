@@ -476,7 +476,7 @@ class TreeModel(ModelTemplate):
         return loss.item()
 
 
-class GbdtModel(ModelTemplate):
+class GdbtModel(ModelTemplate):
     """
     A simple GBDT model for classification and regression tasks.
     """
@@ -544,7 +544,7 @@ class GbdtModel(ModelTemplate):
         """
         # if the task is classification, we should convert the data type of y to long
         if self.task == "classification":
-            y = y.long()
+            y = y.argmax(dim=1)
 
         return (X, y, y_outlier, batch_size, epochs)
 
@@ -600,12 +600,17 @@ class GbdtModel(ModelTemplate):
         """
         This function is used to calculate the loss of the model.
         """
-        # calculate the loss
-        out = self.net.predict(X)
+        # predict the target value
         if self.task == "classification":
-            y = y.long()
-        loss = self.criterion(out, y)
+            out = self.net.predict_proba(X)
+        elif self.task == "regression":
+            out = self.net.predict(X)
+        else:
+            logging.error(f"Task not supported: {self.task}")
+            raise ValueError("Task not supported.")
 
+        # calculate the loss
+        loss = self.criterion(torch.tensor(out).reshape(-1), y.reshape(-1))
         return loss.item()
 
 
@@ -624,9 +629,9 @@ class TabnetModel(ModelTemplate):
         self.model_type = "tabnet"
         # initialization for TabNet model
         if self.task == "classification":
-            self.net = TabNetClassifier(seed=0)
+            self.net = TabNetClassifier()
         elif self.task == "regression":
-            self.net = TabNetRegressor(seed=0)
+            self.net = TabNetRegressor()
         else:
             logging.error(f"Task {self.task} not supported.")
             raise ValueError("Task not supported.")
@@ -676,9 +681,9 @@ class TabnetModel(ModelTemplate):
         # preprocess the input data according to the task
         if self.task == "regression":
             y = y.reshape(-1, 1)
-        # if the task is classification, we should convert the data type of y to long
+        # if the task is classification, we should convert the one hot data to 1D tensor
         elif self.task == "classification":
-            y = y.long().reshape(-1)
+            y = y.argmax(dim=1)
 
         # transit the data type of X and y to numpy array
         X: np.ndarray = X.cpu().numpy()
@@ -743,8 +748,17 @@ class TabnetModel(ModelTemplate):
         """
         This function is used to calculate the loss of the model.
         """
+        # predict the target value
+        if self.task == "classification":
+            out = self.net.predict_proba(X)
+        elif self.task == "regression":
+            out = self.net.predict(X)
+        else:
+            logging.error(f"Task not supported: {self.task}")
+            raise ValueError("Task not supported.")
+
         # calculate the loss
-        out = torch.tensor(self.net.predict(X)).reshape(-1)
+        out = torch.tensor(out).reshape(-1)
         loss = self.criterion(out.float(), y.reshape(-1).float())
 
         return loss.item()
