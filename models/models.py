@@ -265,6 +265,9 @@ class MlpModel(ModelTemplate):
                     loss += self.criterion(out_e, self.y_example)
                 # backward and optimize
                 loss.backward()
+
+                # using gradient clipping to avoid gradient explosion
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), max_norm=1.0)
                 self.optimizer.step()
 
     def __train_icarl_footer(
