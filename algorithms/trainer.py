@@ -146,7 +146,7 @@ class IcarlTrainer(TrainerTemplate):
         preprocessor: Preprocessor,
         lr: float = 0.01,
         epochs: int = 1,
-        batch_size: int = 64,
+        batch_size: int = 128,
         buffer_size: int = 100,
         **kargws,
     ) -> None:

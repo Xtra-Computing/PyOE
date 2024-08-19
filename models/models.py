@@ -287,7 +287,8 @@ class MlpModel(ModelTemplate):
                 features = self.net.feature_extractor(X).detach()
                 avg = torch.mean(features, dim=0).unsqueeze(0)
                 distance = torch.norm(features - avg, dim=1)
-                _, indices = torch.topk(distance, k=buffer_size, largest=False)
+                chosen_k = min(buffer_size, len(distance))
+                _, indices = torch.topk(distance, k=chosen_k, largest=False)
                 self.x_example = X[indices].to(self.device)
                 self.y_example = y[indices].to(self.device)
         elif self.task == "classification":
@@ -296,16 +297,18 @@ class MlpModel(ModelTemplate):
             for i in range(self.output_dim):
                 if len(examples[i]) < buffer_class and i in y:
                     # get some information of the current class
-                    data_class = X[y == i]
+                    targeted_data_list = [X[j] for j in range(len(y)) if y[j][i] == 1]
+                    data_class = (
+                        torch.stack(targeted_data_list).to(self.device)
+                        if len(targeted_data_list) > 0
+                        else torch.tensor([]).to(self.device)
+                    )
                     features = self.net.feature_extractor(data_class).detach()
                     avg = torch.mean(features, dim=0).unsqueeze(0)
                     distance = torch.norm(features - avg, dim=1)
-                    _, indices = torch.topk(
-                        distance,
-                        k=min(buffer_class - len(examples[i]), len(distance)),
-                        largest=False,
-                    )
-                    self.examples[i] = (
+                    chosen_k = min(buffer_class - len(examples[i]), len(distance))
+                    _, indices = torch.topk(distance, k=chosen_k, largest=False)
+                    examples[i] = (
                         data_class[indices]
                         if len(examples[i]) == 0
                         else torch.cat((examples[i], data_class[indices]), dim=0)
