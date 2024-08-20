@@ -12,6 +12,13 @@ class LossTemplate:
     """
 
     def __init__(self, net: nn.Module, **kargws) -> None:
+        """
+        This is the constructor of the LossTemplate class.
+
+        Args:
+            net (Any): Any model that you want to use for the loss function.
+            **kwargs: Additional optional parameters.
+        """
         self.net = net
 
     @abstractmethod
@@ -21,9 +28,18 @@ class LossTemplate:
         y_window: torch.Tensor,
         y_outlier: Optional[torch.Tensor] = None,
         **kargws,
-    ) -> torch.Tensor:
+    ) -> float:
         """
         This is the loss function. You can implement your own loss function here.
+
+        Args:
+            x_window (torch.Tensor): The input data window.
+            y_window (torch.Tensor): The target data window.
+            y_outlier (Optional[torch.Tensor]): Optional outlier target data.
+            **kwargs: Additional optional parameters.
+
+        Returns:
+            out (float): The computed loss value.
         """
         pass
 

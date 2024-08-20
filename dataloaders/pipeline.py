@@ -6,8 +6,13 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import OneHotEncoder
 
 
-def __schema_parser(path):
-    # info path
+def __schema_parser(path: str):
+    """
+    Parse the schema file and return the data path, schema path and task
+
+    Args:
+        path (str): the path of the dataset folder.
+    """
     info_path = path + "/info.json"
     logging.info(f"Start to read data info from {info_path}")
 
@@ -26,6 +31,18 @@ def __data_preprocessing(
     task: str,
     delete_null_target=False,
 ):
+    """
+    Preprocess the data and return the target data, data before one hot encoding,
+    data after one hot encoding, original columns, window size, row count,
+    original column count, new columns, new column count, data one hot.
+
+    Args:
+        dataset_path_prefix (str): the prefix of the dataset path.
+        data_path (str): the path of the data file.
+        schema_path (str): the path of the schema file.
+        task (str): the task of the data.
+        delete_null_target (bool): whether to delete the null target.
+    """
     # open the schema.json file
     with open(schema_path, "r") as f:
         schema: dict = json.load(f)
@@ -165,7 +182,17 @@ def __data_preprocessing(
     )
 
 
-def load_data(dataset_path, prefix=""):
+def load_data(dataset_path: str, prefix: str = ""):
+    """
+    Load the data and return the target data, data before one hot encoding,
+    data after one hot encoding, window size, output dimension, data one hot,
+    and task.
+
+    Args:
+        dataset_path (str): the path of the dataset folder.
+        prefix (str): the prefix of the dataset path.
+    """
+
     logging.info(f"Processing data with prefix {dataset_path}")
 
     # conbime the prefix and the dataset path

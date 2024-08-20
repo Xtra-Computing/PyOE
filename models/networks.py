@@ -20,12 +20,19 @@ class ClusterNet(nn.Module):
     """
 
     def __init__(self, stream) -> None:
+        """
+        Args:
+            stream: the stream object that you want to use for clustering.
+        """
         super().__init__()
         self.stream = stream
 
     def fit(self, X: torch.Tensor) -> None:
         """
         Learn from the data one by one.
+
+        Args:
+            X (torch.Tensor): the input data.
         """
         for x, _ in stream.iter_array(X.numpy().tolist()):
             self.stream.learn_one(x)
@@ -33,6 +40,12 @@ class ClusterNet(nn.Module):
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
         Predict cluster assignments for the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the predicted cluster assignments.
         """
         return torch.tensor(
             [
@@ -48,6 +61,9 @@ class CluStreamNet(ClusterNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the CluStream network.
+        """
         super().__init__(cluster.CluStream())
 
 
@@ -57,6 +73,9 @@ class DbStreamNet(ClusterNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the DBStream network.
+        """
         super().__init__(cluster.DBSTREAM())
 
 
@@ -66,6 +85,9 @@ class DenStreamNet(ClusterNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the DenStream network.
+        """
         super().__init__(cluster.DenStream())
 
 
@@ -75,17 +97,34 @@ class StreamKMeansNet(ClusterNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the StreamKMeans network.
+        """
         super().__init__(cluster.STREAMKMeans())
 
 
 class OutlierDetectorNet(nn.Module):
 
     def __init__(self, model) -> None:
+        """
+        Args:
+            model: the model that you want to use for outlier detection.
+        """
         super().__init__()
         self.model = model
 
     @staticmethod
     def outlier_detector_marker(data):
+        """
+        This function is used to detect outliers in the input data.
+
+        Args:
+            data (np.ndarray): the input data.
+
+        Returns:
+            out (np.ndarray): the detected outliers.
+        """
+
         # assign PYOD seed and model
         seed = 0
         model_dict = {
@@ -110,6 +149,12 @@ class OutlierDetectorNet(nn.Module):
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
         Predict cluster assignments for the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the predicted cluster assignments.
         """
         return self.outlier_detector_marker(X)
 
@@ -117,6 +162,12 @@ class OutlierDetectorNet(nn.Module):
         """
         Using a stream model to get the anomaly score, and with this function
         you could compare the result with the ground truth to evaluate the model.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the anomaly score of the input data.
         """
         scores = [self.model.fit(x).score(x) for x in X.cpu().detach().numpy()]
         return torch.tensor(scores, dtype=torch.float)
@@ -128,6 +179,9 @@ class XStreamDetectorNet(OutlierDetectorNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the xStreamDetector network.
+        """
         super().__init__(xStreamDetector(depth=10))
 
 
@@ -137,6 +191,9 @@ class RShashDetectorNet(OutlierDetectorNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the RShashDetector network.
+        """
         super().__init__(RShashDetector(components_num=10))
 
 
@@ -146,6 +203,9 @@ class HSTreeDetectorNet(OutlierDetectorNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the HSTreeDetector network.
+        """
         super().__init__(HSTreeDetector())
 
 
@@ -155,6 +215,9 @@ class LodaDetectorNet(OutlierDetectorNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the LodaDetector network.
+        """
         super().__init__(LodaDetector())
 
 
@@ -164,4 +227,7 @@ class RrcfDetectorNet(OutlierDetectorNet):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize the RrcfDetector network.
+        """
         super().__init__(RrcfDetector())

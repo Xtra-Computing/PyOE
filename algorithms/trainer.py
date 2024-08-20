@@ -29,6 +29,19 @@ class TrainerTemplate:
         buffer_size: int = 100,
         **kargws,
     ) -> None:
+        """
+        This is the constructor of the TrainerTemplate class.
+
+        Args:
+            dataloader (Dataloader): The dataloader object.
+            model (ModelTemplate): The model object.
+            preprocessor (Preprocessor): The preprocessor object.
+            lr (float): The learning rate.
+            epochs (int): The number of epochs.
+            batch_size (int): The batch size.
+            buffer_size (int): The buffer size.
+            **kwargs: Additional optional parameters.
+        """
         # basic assignments
         self.dataloader = dataloader
         self.model = model
@@ -49,17 +62,32 @@ class TrainerTemplate:
     def train(self, need_test: bool = False) -> None:
         """
         This is the training function. You can implement your own training function here.
+
+        Args:
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
         """
         pass
 
     def _time_start(self):
+        """
+        This function is used to record the start time of the training process.
+        """
         self.start_time = time.time()
 
     def _time_end(self):
+        """
+        This function is used to record the end time of the training process.
+        """
         self.running_time = time.time() - self.start_time
         logging.info(f"Training time: {self.running_time:.2f} seconds.")
 
-    def get_last_training_time(self) -> float | None:
+    def get_last_training_time(self) -> Optional[float]:
+        """
+        This function is used to get the last training time.
+
+        Returns:
+            out (Optional[float]): The last training time.
+        """
         return self.running_time
 
 
@@ -100,7 +128,17 @@ class NaiveTrainer(TrainerTemplate):
         y_outlier: torch.Tensor,
         need_test: bool = False,
         **kwargs,
-    ):
+    ) -> None:
+        """
+        This function is used to train the model for a single batch of data.
+
+        Args:
+            X (torch.Tensor): The input data.
+            y (torch.Tensor): The target data.
+            y_outlier (torch.Tensor): The outlier target data.
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+            **kwargs: Additional optional parameters.
+        """
         # use the correct device for training
         X, y, y_outlier = (
             torch.tensor(X, dtype=torch.float).to(self.device),
@@ -116,6 +154,12 @@ class NaiveTrainer(TrainerTemplate):
         self.model.train_naive(X, y, y_outlier, self.batch_size, self.epochs, need_test)
 
     def train(self, need_test: bool = False) -> None:
+        """
+        This function is used to train the model with regression or classification task using naive algorithm.
+
+        Args:
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+        """
         self._time_start()
 
         # load data using the dataloader
@@ -171,6 +215,16 @@ class IcarlTrainer(TrainerTemplate):
         need_test: bool = False,
         **kargws,
     ) -> None:
+        """
+        This function is used to train the model for a single batch of data.
+
+        Args:
+            X (torch.Tensor): The input data.
+            y (torch.Tensor): The target data.
+            y_outlier (torch.Tensor): The outlier target data.
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+            **kwargs: Additional optional parameters.
+        """
         # use the correct device for training
         X, y, y_outlier = (
             torch.tensor(X, dtype=torch.float).to(self.device),
@@ -188,6 +242,12 @@ class IcarlTrainer(TrainerTemplate):
         )
 
     def train(self, need_test: bool = False) -> None:
+        """
+        This function is used to train the model with regression or classification task using iCaRL algorithm.
+
+        Args:
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+        """
         self._time_start()
 
         # load data using the dataloader
@@ -223,9 +283,22 @@ class ClusterTrainer(TrainerTemplate):
         super().__init__(dataloader, model, preprocessor, **kargws)
 
     def _train(self, X: torch.Tensor, **kwargs) -> None:
+        """
+        This function is used to train the model for a single batch of data.
+
+        Args:
+            X (torch.Tensor): Features of the input data.
+            **kwargs: Additional optional parameters.
+        """
         self.model.train_cluster(X)
 
     def train(self, need_test: bool = False) -> None:
+        """
+        This function is used to train the model with clustering task.
+
+        Args:
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+        """
         self._time_start()
 
         # load data using the dataloader
@@ -306,6 +379,14 @@ class MultiProcessTrainer(TrainerTemplate):
         self.preprocessor = preprocessor
 
     def _train(self, rank: int, need_test: bool):
+        """
+        This function is a wrapper function used by one sub-process to train the model.
+
+        Args:
+            rank (int): The rank of the sub-process.
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+        """
+
         # initialize the process group
         dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
         os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
@@ -326,6 +407,13 @@ class MultiProcessTrainer(TrainerTemplate):
             self.trainer._train(X, y, outlier_label, need_test=need_test)
 
     def train(self, need_test=False):
+        """
+        This function is used to train the model using multi-process.
+
+        Args:
+            need_test (bool): If this parameter is True, the accurate loss will be calculated during training.
+        """
+
         self._time_start()
 
         # start the multi-process training

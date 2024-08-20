@@ -27,6 +27,12 @@ class ModelTemplate:
         ensemble: int = 1,
         device: Literal["cpu", "cuda"] = "cuda",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu", "cuda"]): the device that you want to use for training.
+        """
         # fetch metadata of the dataset from dataloader
         self.column_count = dataloader.get_num_columns()
         self.output_dim = dataloader.get_output_dim()
@@ -44,22 +50,55 @@ class ModelTemplate:
         You should assign some values for later use in training
         such as optimizer, criterion, etc. Attention: this function
         is called in the trainer class.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
         """
         pass
 
     def get_net(self):
+        """
+        This function is used to get the model object.
+
+        Returns:
+            out (Any): the model object.
+        """
         return self.net
 
     def get_net_ensemble(self):
+        """
+        This function is used to get the ensemble model object.
+
+        Returns:
+            out (Any): the ensemble model object.
+        """
         return self.net_ensemble
 
     def get_model_type(self) -> str:
+        """
+        This function is used to get the model type.
+
+        Returns:
+            out (str): the model type.
+        """
         return self.model_type
 
     def get_ensemble_number(self) -> int:
+        """
+        This function is used to get the ensemble number.
+
+        Returns:
+            out (int): the ensemble number.
+        """
         return self.ensemble_num
 
     def get_device(self) -> Literal["cpu", "cuda"]:
+        """
+        This function is used to get the device that you use for training.
+
+        Returns:
+            out (Literal["cpu", "cuda"]): the device that you use for training.
+        """
         return self.device
 
 
@@ -74,6 +113,12 @@ class MlpModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu", "cuda"] = "cuda",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu", "cuda"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "mlp"
         # initialization for MLP model
@@ -85,6 +130,13 @@ class MlpModel(ModelTemplate):
         ]
 
     def process_model(self, lr: float, **kwargs):
+        """
+        This function is used to process the model before training.
+
+        Args:
+            lr (float): the learning rate of the optimizer.
+            **kwargs: other arguments that you want to pass.
+        """
         # choose optimizer for tree models
         self.optimizer = torch.optim.SGD(
             filter(lambda p: p.requires_grad, self.net.parameters()),
@@ -113,6 +165,15 @@ class MlpModel(ModelTemplate):
     ):
         """
         In this function, we will train the model using the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         X, y, y_outlier, batch_size, epochs = self.__train_naive_header(
             X, y, y_outlier, batch_size, epochs, need_test
@@ -131,6 +192,18 @@ class MlpModel(ModelTemplate):
     ):
         """
         This function is used to preprocess the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+
+        Returns:
+            out (tuple): the preprocessed data.
         """
         # if the task is classification, we should convert the data type of y to long
         if self.task == "classification":
@@ -149,6 +222,15 @@ class MlpModel(ModelTemplate):
     ):
         """
         This function is the main part of training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # training for mlp and armnet with epochs times
         for epoch in range(epochs):
@@ -186,6 +268,15 @@ class MlpModel(ModelTemplate):
     ):
         """
         This function is used to postprocess the model after training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # test preparation
         if need_test:
@@ -204,6 +295,16 @@ class MlpModel(ModelTemplate):
     ):
         """
         This function iCaRL implements the training process for MLP model.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            buffer_size (int): the size of the exemplar buffer.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         X, y, y_outlier, batch_size, epochs, buffer_size = self.__train_icarl_header(
             X, y, y_outlier, batch_size, epochs, buffer_size, need_test
@@ -225,6 +326,22 @@ class MlpModel(ModelTemplate):
         buffer_size: int,
         need_test: bool = False,
     ):
+        """
+        This function is used to preprocess the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            buffer_size (int): the size of the exemplar buffer.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+
+        Returns:
+            out (tuple): the preprocessed data.
+        """
         self.x_example = None
         self.y_example = None
         # TODO: need_test is not used in this function
@@ -241,6 +358,19 @@ class MlpModel(ModelTemplate):
         buffer_size: int,
         need_test: bool = False,
     ):
+        """
+        This function is the main part of training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            buffer_size (int): the size of the exemplar buffer.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+        """
         # train epochs times
         for epoch in range(epochs):
             logging.info(f"Starting epoch {epoch + 1}/{epochs}")
@@ -280,6 +410,19 @@ class MlpModel(ModelTemplate):
         buffer_size: int,
         need_test: bool = False,
     ):
+        """
+        This function is used to postprocess the model after training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            buffer_size (int): the size of the exemplar buffer.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+        """
         # prepare some variables here
         examples = [[] for _ in range(self.output_dim)]
         buffer_class = int(buffer_size / self.output_dim)
@@ -341,6 +484,13 @@ class MlpModel(ModelTemplate):
     def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
         """
         This function is used to calculate the loss of the model.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+
+        Returns:
+            out (float): the calculated loss.
         """
         # calculate the loss
         out = self.net(X)
@@ -362,6 +512,12 @@ class TreeModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "tree"
         # initialization for Tree model
@@ -376,6 +532,12 @@ class TreeModel(ModelTemplate):
             raise ValueError("Task not supported.")
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         # choose criterion for different tasks
         if self.task == "classification":
             self.criterion = nn.CrossEntropyLoss().to(self.device)
@@ -398,6 +560,15 @@ class TreeModel(ModelTemplate):
     ):
         """
         In this function, we will train the model using the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         X, y, y_outlier, batch_size, epochs = self.__train_naive_header(
             X, y, y_outlier, batch_size, epochs, need_test
@@ -416,6 +587,18 @@ class TreeModel(ModelTemplate):
     ):
         """
         This function is used to preprocess the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+
+        Returns:
+            out (tuple): the preprocessed data.
         """
         # if the task is classification, we should convert the data type of y to long
         if self.task == "classification":
@@ -434,6 +617,15 @@ class TreeModel(ModelTemplate):
     ):
         """
         This function is the main part of training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # training for mlp and armnet with epochs times
         self.net.fit(X, y)
@@ -449,6 +641,15 @@ class TreeModel(ModelTemplate):
     ):
         """
         This function is used to postprocess the model after training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # test preparation
         if need_test:
@@ -467,6 +668,16 @@ class TreeModel(ModelTemplate):
     ):
         """
         iCaRL training process only supports neural network models.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            buffer_size (int): the size of the exemplar buffer.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
@@ -474,6 +685,13 @@ class TreeModel(ModelTemplate):
     def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
         """
         This function is used to calculate the loss of the model.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+
+        Returns:
+            out (float): the calculated loss.
         """
         # calculate the loss
         out = torch.tensor(self.net.predict(X)).reshape(-1).to(self.device).float()
@@ -493,6 +711,12 @@ class GdbtModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "gbdt"
         # initialization for GBDT model
@@ -507,6 +731,12 @@ class GdbtModel(ModelTemplate):
             raise ValueError("Task not supported.")
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         # choose criterion for different tasks
         if self.task == "classification":
             self.criterion = nn.CrossEntropyLoss().to(self.device)
@@ -529,6 +759,15 @@ class GdbtModel(ModelTemplate):
     ):
         """
         In this function, we will train the model using the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         X, y, y_outlier, batch_size, epochs = self.__train_naive_header(
             X, y, y_outlier, batch_size, epochs, need_test
@@ -547,6 +786,18 @@ class GdbtModel(ModelTemplate):
     ):
         """
         This function is used to preprocess the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+
+        Returns:
+            out (tuple): the preprocessed data.
         """
         # if the task is classification, we should convert the data type of y to long
         if self.task == "classification":
@@ -565,6 +816,15 @@ class GdbtModel(ModelTemplate):
     ):
         """
         This function is the main part of training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # training for mlp and armnet with epochs times
         self.net.fit(X, y)
@@ -580,6 +840,15 @@ class GdbtModel(ModelTemplate):
     ):
         """
         This function is used to postprocess the model after training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # test preparation
         if need_test:
@@ -598,6 +867,15 @@ class GdbtModel(ModelTemplate):
     ):
         """
         iCaRL training process only supports neural network models.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
@@ -605,6 +883,13 @@ class GdbtModel(ModelTemplate):
     def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
         """
         This function is used to calculate the loss of the model.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+
+        Returns:
+            out (float): the calculated loss.
         """
         # predict the target value
         if self.task == "classification":
@@ -631,6 +916,12 @@ class TabnetModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "tabnet"
         # initialization for TabNet model
@@ -643,6 +934,12 @@ class TabnetModel(ModelTemplate):
             raise ValueError("Task not supported.")
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         # choose criterion for different tasks
         if self.task == "classification":
             self.criterion = nn.CrossEntropyLoss().to(self.device)
@@ -665,6 +962,15 @@ class TabnetModel(ModelTemplate):
     ):
         """
         In this function, we will train the model using the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         X, y, y_outlier, batch_size, epochs = self.__train_naive_header(
             X, y, y_outlier, batch_size, epochs, need_test
@@ -683,6 +989,18 @@ class TabnetModel(ModelTemplate):
     ):
         """
         This function is used to preprocess the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+
+        Returns:
+            out (tuple): the preprocessed data.
         """
         # preprocess the input data according to the task
         if self.task == "regression":
@@ -708,6 +1026,15 @@ class TabnetModel(ModelTemplate):
     ):
         """
         This function is the main part of training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         self.net.fit(
             X,
@@ -728,6 +1055,15 @@ class TabnetModel(ModelTemplate):
     ):
         """
         This function is used to postprocess the model after training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # test preparation
         if need_test:
@@ -746,6 +1082,15 @@ class TabnetModel(ModelTemplate):
     ):
         """
         iCaRL training process only supports neural network models.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
@@ -753,6 +1098,13 @@ class TabnetModel(ModelTemplate):
     def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
         """
         This function is used to calculate the loss of the model.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+
+        Returns:
+            out (float): the calculated loss.
         """
         # predict the target value
         if self.task == "classification":
@@ -781,6 +1133,12 @@ class ArmnetModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu", "cuda"] = "cuda",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu", "cuda"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "armnet"
         # initialization for ARMNet model
@@ -801,6 +1159,13 @@ class ArmnetModel(ModelTemplate):
         ).to(device)
 
     def process_model(self, lr: float, **kwargs):
+        """
+        This function is used to process the model before training.
+
+        Args:
+            lr (float): the learning rate for the optimizer.
+            **kwargs: any arguments that you want to pass.
+        """
         # choose optimizer for tree models
         self.optimizer = torch.optim.SGD(
             filter(lambda p: p.requires_grad, self.net.parameters()),
@@ -819,6 +1184,17 @@ class ArmnetModel(ModelTemplate):
             raise ValueError("Task not supported.")
 
     def __preprocess_x(self, X: torch.Tensor) -> dict:
+        """
+        This function is used to preprocess the input data. The built-in ArmNet model
+        requires a dictionary (which contains the value and id of the input data) as
+        the input.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (dict): the preprocessed data.
+        """
         return {
             "value": X,
             "id": torch.arange(X.shape[1])
@@ -838,6 +1214,15 @@ class ArmnetModel(ModelTemplate):
     ):
         """
         In this function, we will train the model using the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         X, y, y_outlier, batch_size, epochs = self.__train_naive_header(
             X, y, y_outlier, batch_size, epochs, need_test
@@ -856,6 +1241,18 @@ class ArmnetModel(ModelTemplate):
     ):
         """
         This function is used to preprocess the input data.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
+
+        Returns:
+            out (tuple): the preprocessed data.
         """
         # if the task is classification, we should convert the data type of y to long
         if self.task == "classification":
@@ -874,6 +1271,15 @@ class ArmnetModel(ModelTemplate):
     ):
         """
         This function is the main part of training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # training for mlp and armnet with epochs times
         for epoch in range(epochs):
@@ -911,6 +1317,15 @@ class ArmnetModel(ModelTemplate):
     ):
         """
         This function is used to postprocess the model after training.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         # test preparation
         if need_test:
@@ -929,6 +1344,15 @@ class ArmnetModel(ModelTemplate):
     ):
         """
         iCaRL training process only supports neural network models.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+            y_outlier (torch.Tensor): the outlier data.
+            batch_size (int): the batch size for training.
+            epochs (int): the number of epochs for training.
+            need_test (bool): if this parameter is True, the accurate loss
+                will be calculated during training.
         """
         logging.error(f"Model not supported: {self.model_type}")
         raise ValueError("ICaRL only supports NN model.")
@@ -936,6 +1360,13 @@ class ArmnetModel(ModelTemplate):
     def calculate_loss(self, X: torch.Tensor, y: torch.Tensor) -> float:
         """
         This function is used to calculate the loss of the model.
+
+        Args:
+            X (torch.Tensor): the input data.
+            y (torch.Tensor): the target value.
+
+        Returns:
+            out (float): the calculated loss.
         """
         # calculate the loss
         out = self.net(self.__preprocess_x(X))
@@ -955,17 +1386,45 @@ class CluStreamModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "clustream"
         self.net = CluStreamNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def train_cluster(self, X: torch.Tensor):
+        """
+        Train the model with the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+        """
         self.net.fit(X)
 
     def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Predict the cluster of the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+
+        Returns:
+            out (torch.Tensor): the predicted cluster of the input data.
+        """
         return self.net(X)
 
 
@@ -980,17 +1439,45 @@ class DbStreamModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "dbstream"
         self.net = DbStreamNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def train_cluster(self, X: torch.Tensor):
+        """
+        Train the model with the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+        """
         self.net.fit(X)
 
     def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Predict the cluster of the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+
+        Returns:
+            out (torch.Tensor): the predicted cluster of the input data.
+        """
         return self.net(X)
 
 
@@ -1005,17 +1492,45 @@ class DenStreamModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "denstream"
         self.net = DenStreamNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def train_cluster(self, X: torch.Tensor):
+        """
+        Train the model with the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+        """
         self.net.fit(X)
 
     def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Predict the cluster of the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+
+        Returns:
+            out (torch.Tensor): the predicted cluster of the input data.
+        """
         return self.net(X)
 
 
@@ -1030,17 +1545,45 @@ class StreamKMeansModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "streamkmeans"
         self.net = StreamKMeansNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def train_cluster(self, X: torch.Tensor):
+        """
+        Train the model with the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+        """
         self.net.fit(X)
 
     def predict_cluster(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Predict the cluster of the input data.
+
+        Args:
+            X (torch.Tensor): features of the input data.
+
+        Returns:
+            out (torch.Tensor): the predicted cluster of the input data.
+        """
         return self.net(X)
 
 
@@ -1055,17 +1598,48 @@ class XStreamDetectorModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "xstream"
         self.net = XStreamDetectorNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier score of the input data using the XStream model.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the outlier score of the input data.
+        """
         return self.net.get_model_score(X)
 
     def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier points using PYOD models.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): a 0-1 vector representing the outlier points.
+        """
         return self.net(X)
 
 
@@ -1080,17 +1654,48 @@ class RShashDetectorModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "rshash"
         self.net = RShashDetectorNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier score of the input data using the RShash model.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the outlier score of the input data.
+        """
         return self.net.get_model_score(X)
 
     def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier points using PYOD models.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): a 0-1 vector representing the outlier points.
+        """
         return self.net(X)
 
 
@@ -1105,17 +1710,48 @@ class HSTreeDetectorModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "hstree"
         self.net = HSTreeDetectorNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier score of the input data using the HSTree model.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the outlier score of the input data.
+        """
         return self.net.get_model_score(X)
 
     def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier points using PYOD models.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): a 0-1 vector representing the outlier points.
+        """
         return self.net(X)
 
 
@@ -1130,17 +1766,48 @@ class LodaDetectorModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "loda"
         self.net = LodaDetectorNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier score of the input data using the LODA model.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the outlier score of the input data.
+        """
         return self.net.get_model_score(X)
 
     def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier points using PYOD models.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): a 0-1 vector representing the outlier points.
+        """
         return self.net(X)
 
 
@@ -1155,15 +1822,46 @@ class RrcfDetectorModel(ModelTemplate):
         ensemble: int = 1,
         device: Literal["cpu"] = "cpu",
     ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
         super().__init__(dataloader, ensemble, device)
         self.model_type = "rrcf"
         self.net = RrcfDetectorNet()
 
     def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
         pass
 
     def get_outlier_with_stream_model(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier score of the input data using the RRCF model.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): the outlier score of the input data.
+        """
         return self.net.get_model_score(X)
 
     def get_outlier(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Get the outlier points using PYOD models.
+
+        Args:
+            X (torch.Tensor): the input data.
+
+        Returns:
+            out (torch.Tensor): a 0-1 vector representing the outlier points.
+        """
         return self.net(X)
