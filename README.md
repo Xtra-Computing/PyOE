@@ -19,7 +19,7 @@ We have some examples in the examples folder. You can copy one of these examples
 
 ## Five Main Tasks of PyOE System
 
-Our PyOE system currently supports 5 types of tasks: regression analysis, classification, outlier detection, and concept drift detection. In the following, we will provide examples of code for each of these 4 tasks.
+Our PyOE system currently supports 5 types of tasks: regression analysis, classification, outlier detection, and concept drift detection. In the following, we will provide examples of code for each of these 5 tasks.
 
 ### Regression
 
