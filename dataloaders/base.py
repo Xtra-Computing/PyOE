@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from PyOE.utils import shingle
+from ..utils import shingle
 from .pipeline import load_data
 
 

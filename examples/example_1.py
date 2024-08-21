@@ -1,5 +1,5 @@
 import os
-import PyOE
+import pyoe
 import logging
 
 # INFO level logging for more detailed output
@@ -18,12 +18,12 @@ def set_env_vars():
 # be put in the `if __name__ == "__main__":` block
 if __name__ == "__main__":
     # using pre-prepared dataset and load them into a dataloader
-    dataloader = PyOE.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
+    dataloader = pyoe.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
 
     # initialize the model, trainer and preprocessor
-    model = PyOE.MlpModel(dataloader=dataloader, device="cuda")
-    preprocessor = PyOE.Preprocessor(missing_fill="knn2")
-    trainer = PyOE.NaiveTrainer(
+    model = pyoe.MlpModel(dataloader=dataloader, device="cuda")
+    preprocessor = pyoe.Preprocessor(missing_fill="knn2")
+    trainer = pyoe.NaiveTrainer(
         dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=16
     )
 
@@ -33,9 +33,9 @@ if __name__ == "__main__":
     # train the model using multiple processes
     world_size = 4
     set_env_vars()
-    PyOE.MultiProcessTrainer(world_size, dataloader, trainer, preprocessor).train()
+    pyoe.MultiProcessTrainer(world_size, dataloader, trainer, preprocessor).train()
 
     # using a effective metric to evaluate the model
     print(
-        f"Average MSELoss: {PyOE.metrics.EffectivenessMetric(dataloader, model).measure()}"
+        f"Average MSELoss: {pyoe.metrics.EffectivenessMetric(dataloader, model).measure()}"
     )
