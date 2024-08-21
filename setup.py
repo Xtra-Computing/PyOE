@@ -102,7 +102,6 @@ REQUIRED = [
     "six==1.16.0",
     "sortedcontainers==2.4.0",
     "statsmodels==0.13.5",
-    "streamad==0.3.1",
     "tdigest==0.5.2.2",
     "tenacity==8.5.0",
     "tensorboard==2.15.2",
@@ -128,7 +127,7 @@ REQUIRED = [
 
 # What packages are optional?
 EXTRAS = {
-    # 'fancy feature': ['django'],
+    "streamad": ["streamad==0.3.1"],
 }
 
 # The rest you shouldn't have to touch too much :)

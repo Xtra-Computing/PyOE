@@ -11,8 +11,8 @@ The structure of our system is shown below:
 First, you need to install the dependencies required by PyOE. You can do this by running the following commands:
 
 ```shell
-pip install numpy
-pip install -r requirements.txt
+pip install streamad==0.3.1
+pip install pyoe
 ```
 
 We have some examples in the examples folder. You can copy one of these examples to the parent directory of this README file and try running them. If they run successfully, it means the installation is complete.
