@@ -52,7 +52,6 @@ packaging==24.1
 pandas==2.2.2
 patsy==0.5.6
 pillow==10.4.0
-pip==24.0
 plotly==5.23.0
 pluggy==1.5.0
 protobuf==4.25.3
