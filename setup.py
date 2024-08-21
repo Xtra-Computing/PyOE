@@ -99,7 +99,6 @@ REQUIRED = [
     "scikit-multiflow==0.5.3",
     "scipy==1.14.0",
     "seaborn==0.13.2",
-    "setuptools==69.5.1",
     "six==1.16.0",
     "sortedcontainers==2.4.0",
     "statsmodels==0.13.5",
