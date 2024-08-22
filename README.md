@@ -135,7 +135,7 @@ print(pyoe.metrics.DriftDelayMetric(dataloader).measure())
 
 It will print a floating-point number representing the *Average Concept Drift Delay*.
 
-## Some repos we refer to
+## Repos We Refer To
 
 - https://github.com/Minqi824/ADBench
 - https://github.com/messaoudia/AdaptiveRandomForest
