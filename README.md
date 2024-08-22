@@ -134,3 +134,25 @@ print(pyoe.metrics.DriftDelayMetric(dataloader).measure())
 ```
 
 It will print a floating-point number representing the *Average Concept Drift Delay*.
+
+## Some repos we refer to
+
+- https://github.com/Minqi824/ADBench
+- https://github.com/messaoudia/AdaptiveRandomForest
+- https://github.com/moskomule/ewc.pytorch
+
+## Citation
+If you find this repository useful, please cite our paper:
+
+```
+@article{diao2024oebench,
+      title={OEBench: Investigating Open Environment Challenges in Real-World Relational Data Streams}, 
+      author={Diao, Yiqun and Yang, Yutong and Li, Qinbin and He, Bingsheng and Lu, Mian},
+      journal={Proceedings of the VLDB Endowment},
+      volume={17},
+      number={6},
+      pages={1283--1296},
+      year={2024},
+      publisher={VLDB Endowment}
+}
+```
