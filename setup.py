@@ -16,9 +16,9 @@ NAME = "pyoe"
 DESCRIPTION = "Investigating open environment challenges in real-world relational data streams with PyOE."
 URL = "https://github.com/sjtudyq/PyOE"
 EMAIL = "liao_chengfan@sjtu.edu.cn"
-AUTHOR = "Xtra_Computing_Group"
+AUTHOR = "Liao Chengfan"
 REQUIRES_PYTHON = ">=3.10"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 # What packages are required for this module to be executed?
 REQUIRED = [
