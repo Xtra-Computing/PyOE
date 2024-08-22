@@ -1,6 +1,6 @@
 # PyOE
 
-PyOE is a Machine Learning System inspired by [OEBench](https://github.com/Xtra-Computing/OEBench). With this system, you can train models on our datasets with just a few lines of code. For more details, you can visit our [PyOE website](https://pyoe.xtra.science).
+[PyOE](https://github.com/Xtra-Computing/PyOE) is a Machine Learning System inspired by [OEBench](https://github.com/Xtra-Computing/OEBench). With this system, you can train models on our datasets with just a few lines of code. For more details, you can visit our [PyOE website](https://pyoe.xtra.science).
 
 The structure of our system is shown below:
 
@@ -31,13 +31,13 @@ Here is a complete example:
 
 ```python
 # import the library PyOE
-import PyOE
+import pyoe
 
 # choose the targeted dataset, model, preprocessor, and trainer
-dataloader = PyOE.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
-model = PyOE.MlpModel(dataloader=dataloader, device="cuda")
-preprocessor = PyOE.Preprocessor(missing_fill="knn2")
-trainer = PyOE.NaiveTrainer(dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=16)
+dataloader = pyoe.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
+model = pyoe.MlpModel(dataloader=dataloader, device="cuda")
+preprocessor = pyoe.Preprocessor(missing_fill="knn2")
+trainer = pyoe.NaiveTrainer(dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=16)
 
 # get the trained net
 net = model.get_net()
@@ -50,13 +50,13 @@ The classification task is almost identical to the regression task, except that 
 
 ```python
 # import the library PyOE
-import PyOE
+import pyoe
 
 # choose the targeted dataset, model, preprocessor, and trainer
-dataloader = PyOE.Dataloader(dataset_name="dataset_experiment_info/room_occupancy")
-model = PyOE.MlpModel(dataloader=dataloader, device="cuda")
-preprocessor = PyOE.Preprocessor(missing_fill="knn2")
-trainer = PyOE.NaiveTrainer(dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=1024)
+dataloader = pyoe.Dataloader(dataset_name="dataset_experiment_info/room_occupancy")
+model = pyoe.MlpModel(dataloader=dataloader, device="cuda")
+preprocessor = pyoe.Preprocessor(missing_fill="knn2")
+trainer = pyoe.NaiveTrainer(dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=1024)
 
 # get the trained net
 net = model.get_net()
@@ -68,14 +68,14 @@ net = model.get_net()
 Our system supports clustering analysis of data points. The task is done by training a clustering stream model on the data points and then using the model to make predictions after training is complete. The model will return integer label values representing which cluster the current data point belongs to. Below is a sample code:
 
 ```python
-import PyOE
+import pyoe
 from torch.utils.data import DataLoader as TorchDataLoader
 
 # prepare dataloader, model, preprocessor and trainer, and then train the model
-dataloader = PyOE.Dataloader(dataset_name="OD_datasets/AT")
-model = PyOE.CluStreamModel(dataloader=dataloader)
-preprocessor = PyOE.Preprocessor(missing_fill="knn2")
-trainer = PyOE.ClusterTrainer(dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=16)
+dataloader = pyoe.Dataloader(dataset_name="OD_datasets/AT")
+model = pyoe.CluStreamModel(dataloader=dataloader)
+preprocessor = pyoe.Preprocessor(missing_fill="knn2")
+trainer = pyoe.ClusterTrainer(dataloader=dataloader, model=model, preprocessor=preprocessor, epochs=16)
 trainer.train()
 
 # predict which cluster these data points belong to
@@ -93,11 +93,11 @@ In real-world scenarios, many data are streaming data (e.g., time series data) a
 Here is an example:
 
 ```python
-import PyOE
+import pyoe
 from torch.utils.data import DataLoader as TorchDataLoader
 
-dataloader = PyOE.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
-model = PyOE.XStreamDetectorModel(dataloader=dataloader)
+dataloader = pyoe.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
+model = pyoe.XStreamDetectorModel(dataloader=dataloader)
 # use TorchDataLoader to enumerate X and y
 torch_dataloader = TorchDataLoader(dataloader, batch_size=10240)
 for X, y, _ in torch_dataloader:
@@ -110,27 +110,27 @@ Concept drift detection is mainly divided into two scenarios. The first scenario
 
 ```python
 # import the library PyOE
-import PyOE
+import pyoe
 
 # load data and detect concept drift
-dataloader = PyOE.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
-print(PyOE.metrics.DriftDelayMetric(dataloader).measure())
+dataloader = pyoe.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
+print(pyoe.metrics.DriftDelayMetric(dataloader).measure())
 ```
 
-It will print a list containing all the detected concept drift points. It should be noted that ```PyOE.metrics.DriftDelayMetric``` also contains many parameters that can be used to define the model, sensitivity of detection, and so on.
+It will print a list containing all the detected concept drift points. It should be noted that ```pyoe.metrics.DriftDelayMetric``` also contains many parameters that can be used to define the model, sensitivity of detection, and so on.
 
 The second scenario is when the ground truth is known. Use the following code to measure the *Average Concept Drift Delay*:
 
 ```python
 # import the library PyOE
-import PyOE
+import pyoe
 
 # load data and detect concept drift
-dataloader = PyOE.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
+dataloader = pyoe.Dataloader(dataset_name="dataset_experiment_info/beijingPM2.5")
 # change the list below with ground truth...
 ground_truth_example = [100, 1000, 10000]
 
-print(PyOE.metrics.DriftDelayMetric(dataloader).measure())
+print(pyoe.metrics.DriftDelayMetric(dataloader).measure())
 ```
 
 It will print a floating-point number representing the *Average Concept Drift Delay*.
