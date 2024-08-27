@@ -2,8 +2,11 @@ import torch
 import operator
 import functools
 import numpy as np
+import pandas as pd
 from torch import nn
+from typing import Literal
 from river import cluster, stream
+from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 from ..OEBench.ADBench.baseline.PyOD import PYOD
 from streamad.model import (
     xStreamDetector,
@@ -231,3 +234,59 @@ class RrcfDetectorNet(OutlierDetectorNet):
         Initialize the RrcfDetector network.
         """
         super().__init__(RrcfDetector())
+
+
+class ChronosPredictorNet(nn.Module):
+    """
+    Chronos model for time series prediction.
+    See https://github.com/amazon-science/chronos-forecasting.
+    """
+
+    def __init__(
+        self,
+        prediction_length: int,
+        model_path: Literal["tiny", "mini", "small", "base", "large"] = "tiny",
+        device: Literal["cpu", "cuda"] = "cpu",
+    ) -> None:
+        """
+        Args:
+            prediction_length (int): the length of the prediction.
+            model_path (Literal["tiny", "mini", "small", "base", "large"]): the type of the model.
+            device (Literal["cpu", "cuda"]): the device to run the model.
+        """
+        super().__init__()
+        self.model = TimeSeriesPredictor(prediction_length=prediction_length)
+        self.model_parameters = {
+            "Chronos": {
+                "model_path": model_path,
+                "batch_size": 64,
+                "device": device,
+            }
+        }
+
+    def fit(self, X: pd.DataFrame, y: pd.DataFrame) -> None:
+        """
+        Learn from the time series data.
+
+        Args:
+            X (pd.DataFrame): the input data.
+            y (pd.DataFrame): the target data.
+        """
+        time_series = TimeSeriesDataFrame(y, X)
+        self.model = self.model.fit(
+            time_series,
+            hyperparameters=self.model_parameters,
+            skip_model_selection=True,
+            verbosity=0,
+        )
+
+    def forward(self, X: pd.DataFrame, y: pd.DataFrame) -> torch.Tensor:
+        """
+        Predict the future time series data.
+
+        Args:
+            X (pd.DataFrame): the input data.
+            y (pd.DataFrame): the target data.
+        """
+        time_series = TimeSeriesDataFrame(y, X)
+        return torch.tensor(self.model.predict(time_series).to_numpy())

@@ -5,12 +5,13 @@ import scipy.io
 import numpy as np
 import pandas as pd
 import torch
+from abc import abstractmethod
 from torch.utils.data import Dataset
 from ..utils import shingle
 from .pipeline import load_data
 
 
-class Dataloader(Dataset):
+class BaseDataloader(Dataset):
     """
     For datasets in OEBench,
     dataset_name in ``['dataset_experiment_info/allstate_claims_severity',
@@ -86,7 +87,10 @@ class Dataloader(Dataset):
     """
 
     def __init__(
-        self, dataset_name: str, data_dir: str = "./data/", window_size: int = 0
+        self,
+        dataset_name: str,
+        data_dir: str = "./data/",
+        window_size: int = 0,
     ):
         """
         Args:
@@ -120,9 +124,9 @@ class Dataloader(Dataset):
                 self.__prepare_dataset()
                 # using two different loading method
                 if "OD_datasets" in self.dataset_name:
-                    self.__load_od_dataset()
+                    self._load_od_dataset()
                 else:
-                    self.__load_dataset()
+                    self._load_dataset()
                 # loading succeeded
                 break
             except Exception as e:
@@ -251,6 +255,26 @@ class Dataloader(Dataset):
         """
         self.window_size = window_size
 
+    def get_data(self) -> torch.Tensor | pd.DataFrame:
+        """
+        Return the data in the dataset.
+        pd.DataFrame for time series data, torch.Tensor for others.
+
+        Returns:
+            out (torch.Tensor | pd.DataFrame): the data in the dataset.
+        """
+        return self.data
+
+    def get_target(self) -> torch.Tensor | pd.DataFrame:
+        """
+        Return the target in the dataset.
+        pd.DataFrame for time series data, torch.Tensor for others.
+
+        Returns:
+            out (torch.Tensor | pd.DataFrame): the target in the dataset.
+        """
+        return self.target
+
     def get_outlier_ratio(self) -> float:
         """
         Return the outlier ratio for the dataset.
@@ -336,124 +360,19 @@ class Dataloader(Dataset):
             logging.error("Obtaining datasets failed!")
             raise e
 
-    def __load_dataset(self) -> None:
+    @abstractmethod
+    def _load_dataset(self) -> None:
         """
         Load the dataset from local files.
         """
-        try:
-            (
-                target_data_nonnull,
-                data_before_onehot,
-                data_onehot_nonnull,
-                window_size,
-                output_dim,
-                data_one_hot,
-                task,
-            ) = load_data(
-                dataset_path=self.dataset_name,
-                prefix=self.data_dir,
-            )
-        except Exception as e:
-            raise e
+        raise NotImplementedError("This function should be implemented in subclass.")
 
-        # import at Runtime to avoid circular import
-        from ..models import OutlierDetectorNet
-
-        self.outlier_label = OutlierDetectorNet.outlier_detector_marker(
-            data_onehot_nonnull.astype(float)
-        )
-        self.data = torch.tensor(data_one_hot.astype(float).values)
-        self.target = torch.tensor(target_data_nonnull.astype(float).values)
-        self.task = task
-
-        self.num_samples = data_one_hot.shape[0]
-        self.num_columns = data_one_hot.shape[1]
-        self.output_dim = output_dim
-        self.window_size = window_size if self.window_size == 0 else self.window_size
-        self.outlier_ratio = np.sum(self.outlier_label) / self.num_samples
-
-    def __load_od_dataset(self) -> None:
+    @abstractmethod
+    def _load_od_dataset(self) -> None:
         """
-        Load OD dataset from local files.
+        Load the OD dataset from local files.
         """
-        if self.dataset_name == "OD_datasets/NSL":
-            nfile = self.data_dir + "OD_datasets/nsl.txt"
-            lfile = self.data_dir + "OD_datasets/nsllabel.txt"
-            numeric = torch.FloatTensor(np.loadtxt(nfile, delimiter=","))
-            labels = np.loadtxt(lfile, delimiter=",")
-        elif self.dataset_name == "OD_datasets/AT":
-            data = pd.read_csv(
-                self.data_dir + "OD_datasets/ambient_temperature_system_failure.csv"
-            )
-            numeric = data["value"].values  # .reshape(-1, 1)
-            labels = data["label"].values
-            X = shingle(numeric, 10)  # shape (windowsize, len-win+1)
-            numeric = torch.FloatTensor(np.transpose(X))
-            t1, _ = np.shape(numeric)
-            labels = labels[:t1]
-        elif self.dataset_name == "OD_datasets/CPU":
-            data = pd.read_csv(
-                self.data_dir + "OD_datasets/cpu_utilization_asg_misconfiguration.csv"
-            )
-            numeric = data["value"].values
-            labels = data["label"].values
-            X = shingle(numeric, 10)
-            numeric = torch.FloatTensor(np.transpose(X))
-            t1, _ = np.shape(numeric)
-            labels = labels[:t1]
-        elif self.dataset_name == "OD_datasets/MT":
-            data = pd.read_csv(
-                self.data_dir + "OD_datasets/machine_temperature_system_failure.csv"
-            )
-            numeric = data["value"].values
-            labels = data["label"].values
-            X = shingle(numeric, 10)
-            numeric = torch.FloatTensor(np.transpose(X))
-            t1, _ = np.shape(numeric)
-            labels = labels[:t1]
-        elif self.dataset_name == "OD_datasets/NYC":
-            data = pd.read_csv(self.data_dir + "OD_datasets/nyc_taxi.csv")
-            numeric = data["value"].values
-            labels = data["label"].values
-            X = shingle(numeric, 10)
-            numeric = torch.FloatTensor(np.transpose(X))
-            t1, _ = np.shape(numeric)
-            labels = labels[:t1]
-        elif self.dataset_name in [
-            "OD_datasets/INSECTS_Abr",
-            "OD_datasets/INSECTS_Incr",
-            "OD_datasets/INSECTS_IncrGrd",
-            "OD_datasets/INSECTS_IncrRecr",
-        ]:
-            data = pd.read_csv(
-                self.data_dir + self.dataset_name + ".csv",
-                dtype=np.float64,
-                header=None,
-            )
-            data_label = data.pop(data.columns[-1])
-            numeric = torch.FloatTensor(data.values)
-            labels = data_label.values.reshape(-1)
-        elif self.dataset_name in [
-            "OD_datasets/ionosphere",
-            "OD_datasets/mammography",
-            "OD_datasets/pima",
-            "OD_datasets/satellite",
-        ]:
-            df = scipy.io.loadmat(self.data_dir + self.dataset_name + ".mat")
-            numeric = torch.FloatTensor(df["X"])
-            labels = (df["y"]).astype(float).reshape(-1)
-        else:
-            raise ValueError("Dataset not supported.")
-
-        self.data = numeric
-        self.target = labels
-        self.outlier_label = labels
-        self.task = "outlier detection"
-        self.num_samples = self.data.shape[0]
-        self.num_columns = self.data.shape[1]
-        if self.window_size == 0:
-            self.window_size = 1
-        self.output_dim = 1
+        raise NotImplementedError("This function should be implemented in subclass.")
 
     @staticmethod
     def get_oebench_datasets() -> list[str]:
@@ -542,6 +461,216 @@ class Dataloader(Dataset):
             "OD_datasets/pima",
             "OD_datasets/satellite",
         ]
+
+
+class Dataloader(BaseDataloader):
+    """
+    This class is used to load the dataset from local files.
+    For non-time-series data only, the data is stored in a torch tensor.
+    """
+
+    def __init__(
+        self,
+        dataset_name: str,
+        data_dir: str = "./data/",
+        window_size: int = 0,
+    ):
+        """
+        Args:
+            dataset_name (str): the name of the dataset.
+            data_dir (str): the directory to store the dataset.
+            window_size (int): the window size of the dataset.
+        """
+        super().__init__(
+            dataset_name=dataset_name,
+            data_dir=data_dir,
+            window_size=window_size,
+        )
+
+    def _load_dataset(self) -> None:
+        """
+        Load the dataset from local files.
+        """
+        try:
+            (
+                target_data_nonnull,
+                data_before_onehot,
+                data_one_hot,
+                data_onehot_nonnull,
+                window_size,
+                output_dim,
+                task,
+            ) = load_data(
+                dataset_path=self.dataset_name,
+                prefix=self.data_dir,
+            )
+        except Exception as e:
+            raise e
+
+        # import at Runtime to avoid circular import
+        from ..models import OutlierDetectorNet
+
+        self.data = torch.tensor(data_one_hot.astype(float).values)
+        self.target = torch.tensor(target_data_nonnull.astype(float).values)
+        self.task = task
+        self.outlier_label = OutlierDetectorNet.outlier_detector_marker(
+            data_onehot_nonnull.astype(float)
+        )
+
+        self.num_samples = data_one_hot.shape[0]
+        self.num_columns = data_one_hot.shape[1]
+        self.output_dim = output_dim
+        self.window_size = window_size if self.window_size == 0 else self.window_size
+        self.outlier_ratio = np.sum(self.outlier_label) / self.num_samples
+
+    def _load_od_dataset(self) -> None:
+        """
+        Load OD dataset from local files.
+        """
+        if self.dataset_name == "OD_datasets/NSL":
+            nfile = self.data_dir + "OD_datasets/nsl.txt"
+            lfile = self.data_dir + "OD_datasets/nsllabel.txt"
+            numeric = torch.FloatTensor(np.loadtxt(nfile, delimiter=","))
+            labels = np.loadtxt(lfile, delimiter=",")
+        elif self.dataset_name == "OD_datasets/AT":
+            data = pd.read_csv(
+                self.data_dir + "OD_datasets/ambient_temperature_system_failure.csv"
+            )
+            numeric = data["value"].values  # .reshape(-1, 1)
+            labels = data["label"].values
+            X = shingle(numeric, 10)  # shape (windowsize, len-win+1)
+            numeric = torch.FloatTensor(np.transpose(X))
+            t1, _ = np.shape(numeric)
+            labels = labels[:t1]
+        elif self.dataset_name == "OD_datasets/CPU":
+            data = pd.read_csv(
+                self.data_dir + "OD_datasets/cpu_utilization_asg_misconfiguration.csv"
+            )
+            numeric = data["value"].values
+            labels = data["label"].values
+            X = shingle(numeric, 10)
+            numeric = torch.FloatTensor(np.transpose(X))
+            t1, _ = np.shape(numeric)
+            labels = labels[:t1]
+        elif self.dataset_name == "OD_datasets/MT":
+            data = pd.read_csv(
+                self.data_dir + "OD_datasets/machine_temperature_system_failure.csv"
+            )
+            numeric = data["value"].values
+            labels = data["label"].values
+            X = shingle(numeric, 10)
+            numeric = torch.FloatTensor(np.transpose(X))
+            t1, _ = np.shape(numeric)
+            labels = labels[:t1]
+        elif self.dataset_name == "OD_datasets/NYC":
+            data = pd.read_csv(self.data_dir + "OD_datasets/nyc_taxi.csv")
+            numeric = data["value"].values
+            labels = data["label"].values
+            X = shingle(numeric, 10)
+            numeric = torch.FloatTensor(np.transpose(X))
+            t1, _ = np.shape(numeric)
+            labels = labels[:t1]
+        elif self.dataset_name in [
+            "OD_datasets/INSECTS_Abr",
+            "OD_datasets/INSECTS_Incr",
+            "OD_datasets/INSECTS_IncrGrd",
+            "OD_datasets/INSECTS_IncrRecr",
+        ]:
+            data = pd.read_csv(
+                self.data_dir + self.dataset_name + ".csv",
+                dtype=np.float64,
+                header=None,
+            )
+            data_label = data.pop(data.columns[-1])
+            numeric = torch.FloatTensor(data.values)
+            labels = data_label.values.reshape(-1)
+        elif self.dataset_name in [
+            "OD_datasets/ionosphere",
+            "OD_datasets/mammography",
+            "OD_datasets/pima",
+            "OD_datasets/satellite",
+        ]:
+            df = scipy.io.loadmat(self.data_dir + self.dataset_name + ".mat")
+            numeric = torch.FloatTensor(df["X"])
+            labels = (df["y"]).astype(float).reshape(-1)
+        else:
+            raise ValueError("Dataset not supported.")
+
+        self.data = numeric
+        self.target = labels
+        self.outlier_label = labels
+        self.task = "outlier detection"
+        self.num_samples = self.data.shape[0]
+        self.num_columns = self.data.shape[1]
+        if self.window_size == 0:
+            self.window_size = 1
+        self.output_dim = 1
+
+
+class TimeSeriesDataloader(BaseDataloader):
+    """
+    This class is used to load the time series dataset from local files.
+    For time-series data only, the data is stored in a pandas dataframe.
+    """
+
+    def __init__(
+        self,
+        dataset_name: str,
+        data_dir: str = "./data/",
+        window_size: int = 0,
+    ):
+        """
+        Args:
+            dataset_name (str): the name of the dataset.
+            data_dir (str): the directory to store the dataset.
+            window_size (int): the window size of the dataset.
+        """
+        super().__init__(
+            dataset_name=dataset_name,
+            data_dir=data_dir,
+            window_size=window_size,
+        )
+
+    def _load_dataset(self) -> None:
+        """
+        Load the dataset from local files.
+        """
+        try:
+            (
+                target_data_nonnull,
+                data_before_onehot,
+                data_one_hot,
+                data_onehot_nonnull,
+                window_size,
+                output_dim,
+                task,
+            ) = load_data(
+                dataset_path=self.dataset_name,
+                prefix=self.data_dir,
+            )
+        except Exception as e:
+            raise e
+
+        # set the data and target
+        self.data = data_onehot_nonnull
+        self.target = target_data_nonnull
+        self.task = task
+
+        # time series data needs item_id and timestamp (for target)
+        self.data["item_id"] = 0
+        self.target["item_id"] = 0
+
+        self.num_samples = data_one_hot.shape[0]
+        self.num_columns = data_one_hot.shape[1]
+        self.output_dim = output_dim
+        self.window_size = window_size if self.window_size == 0 else self.window_size
+
+    def _load_od_dataset(self) -> None:
+        """
+        Load OD dataset from local files.
+        Currently not supported for time series data.
+        """
+        raise ValueError("Currently OD dataset is not supported for time series data.")
 
 
 class DataloaderWrapper(Dataset):

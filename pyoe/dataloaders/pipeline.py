@@ -12,6 +12,11 @@ def __schema_parser(path: str):
 
     Args:
         path (str): the path of the dataset folder.
+
+    Returns:
+        data_path (str): the path of the data file.
+        schema_path (str): the path of the schema file.
+        task (str): the task of the data.
     """
     info_path = path + "/info.json"
     logging.info(f"Start to read data info from {info_path}")
@@ -25,11 +30,7 @@ def __schema_parser(path: str):
 
 
 def __data_preprocessing(
-    dataset_path_prefix: str,
-    data_path: str,
-    schema_path: str,
-    task: str,
-    delete_null_target=False,
+    dataset_path_prefix: str, data_path: str, schema_path: str, task: str
 ):
     """
     Preprocess the data and return the target data, data before one hot encoding,
@@ -41,18 +42,29 @@ def __data_preprocessing(
         data_path (str): the path of the data file.
         schema_path (str): the path of the schema file.
         task (str): the task of the data.
-        delete_null_target (bool): whether to delete the null target.
+
+    Returns:
+        target_data_nonnull (pd.DataFrame): the target data without null values.
+        data_before_onehot (pd.DataFrame): the data before one hot encoding.
+        data_one_hot (pd.DataFrame): the data after one hot encoding.
+        data_onehot_nonnull (pd.DataFrame): the data after one hot encoding without null values.
+        total_columns (pd.Index): the original columns.
+        window_size (int): the window size.
+        row_count (int): the row count of the data.
+        original_column_count (int): the original column count.
+        new_columns (pd.Index): the new columns after one hot encoding.
+        new_column_count (int): the new column count after one hot encoding.
     """
     # open the schema.json file
     with open(schema_path, "r") as f:
         schema: dict = json.load(f)
-        # numerical = schema["numerical"]
         categorical = schema["categorical"]
         target = schema["target"]
         timestamp = schema["timestamp"]
         unnecessary = schema["unnecessary"]
         window_size = schema["window size"]
         replace_with_null = schema.get("replace_with_null", [])
+        time_interval = schema.get("time_interval", None)
 
     # use pandas to read the data (extension name will be judged)
     if data_path.endswith(".csv"):
@@ -84,7 +96,9 @@ def __data_preprocessing(
 
     original_data = data
     target_data = data[target]
+    timestamp_data = pd.to_datetime(data[timestamp], errors="coerce")
 
+    # drop unnecessary columns
     data = data.drop(unnecessary, axis=1)
     data = data.drop(timestamp, axis=1)
 
@@ -108,20 +122,15 @@ def __data_preprocessing(
         target_data = pd.DataFrame(y_one_hot, columns=target)
     elif task == "regression":
         output_dim = 1
+    elif task == "forecasting":
+        output_dim = 1
+        data_one_hot["timestamp"] = timestamp_data
+        if time_interval is None:
+            logging.error("Time interval must be specified for forecasting task")
+            raise ValueError("Time interval is not specified")
     else:
         logging.error(f"Task {task} is not supported")
         raise ValueError(f"{task}: task not supported")
-
-    # # TODO: the codes below are not all-around?
-    # if delete_null_target:
-    #     return (
-    #         pd.DataFrame(data_one_hot),
-    #         pd.DataFrame(target_data),
-    #         window_size,
-    #         task,
-    #         new_column_count,
-    #         output_dim,
-    #     )
 
     # check for the existence of the file
     logging.info("Start null values processing")
@@ -129,19 +138,17 @@ def __data_preprocessing(
     #     data_onehot_nonnull_path = dataset_path_prefix + "/onehot_nonnull.csv"
     #     data_onehot_nonnull = pd.read_csv(data_onehot_nonnull_path)
     # else:
-    if data.isna().values.any():
+    if data_one_hot.isna().values.any():
         # join target columns to the one hot data
         logging.info("The dataset has null values")
-        temp_columns = new_columns.copy()
-        temp_columns.append(pd.Index(target))
         data_one_hot[target] = target_data  # add target to one hot data
 
         # use KNNImputer to fill the null values
         imp = KNNImputer(n_neighbors=2, weights="uniform")
         # drop the rows with null target
-        data_one_hot = data_one_hot.dropna(subset=target)
-        target_data = data_one_hot[target]
-        data_one_hot = data_one_hot.drop(target, axis=1)
+        data_one_hot = data_one_hot.dropna(subset=(target + ["timestamp"]))
+        target_data, timestamp_data = data_one_hot[target], data_one_hot["timestamp"]
+        data_one_hot = data_one_hot.drop(target + ["timestamp"], axis=1)
 
         # convert all columns to numeric
         non_numeric_columns = data_one_hot.select_dtypes(exclude=[np.number]).columns
@@ -150,8 +157,11 @@ def __data_preprocessing(
 
         # inpute the null values
         data_onehot_nonnull = imp.fit_transform(data_one_hot)
-        data_onehot_nonnull = pd.DataFrame(data_onehot_nonnull)
+        data_onehot_nonnull = pd.DataFrame(data_onehot_nonnull, columns=new_columns)
         assert not data_onehot_nonnull.isnull().values.any()
+
+        # add the timestamp back to the data
+        data_onehot_nonnull["timestamp"] = timestamp_data.reset_index(drop=True)
     else:
         logging.info("The dataset has no null values")
         data_onehot_nonnull = data_one_hot
@@ -168,9 +178,23 @@ def __data_preprocessing(
     whole_data_one_hot_path = dataset_path_prefix + "/onehot_nonnull.csv"
     whole_data_one_hot.to_csv(whole_data_one_hot_path, mode="w")
 
+    if task == "forecasting":
+        logging.info("Start processing data for time series")
+        # from concat_data, get the target and the data without target
+        whole_data_one_hot.set_index("timestamp", inplace=True)
+        whole_data_one_hot = whole_data_one_hot.asfreq(time_interval)
+        whole_data_one_hot.reset_index(inplace=True)
+
+        # time series data needs item_id and timestamp (for target)
+        target_data = whole_data_one_hot[target + ["timestamp"]]
+        target_data.rename(columns={target[0]: "target"}, inplace=True)
+        data_onehot_nonnull = whole_data_one_hot.drop(target + ["timestamp"], axis=1)
+        logging.info("Time series data processing finished")
+
     return (
         pd.DataFrame(target_data),
         pd.DataFrame(original_data),
+        pd.DataFrame(data_one_hot),
         pd.DataFrame(data_onehot_nonnull),
         total_columns,
         window_size,
@@ -178,7 +202,6 @@ def __data_preprocessing(
         original_column_count,
         new_columns,
         new_column_count,
-        pd.DataFrame(data_one_hot),
     )
 
 
@@ -191,6 +214,15 @@ def load_data(dataset_path: str, prefix: str = ""):
     Args:
         dataset_path (str): the path of the dataset folder.
         prefix (str): the prefix of the dataset path.
+
+    Returns:
+        target_data_nonnull (pd.DataFrame): the target data without null values.
+        data_before_onehot (pd.DataFrame): the data before one hot encoding.
+        data_one_hot (pd.DataFrame): the data after one hot encoding.
+        data_onehot_nonnull (pd.DataFrame): the data after one hot encoding without null values.
+        window_size (int): the window size.
+        output_dim (int): the output dimension.
+        task (str): the task of the data.
     """
 
     logging.info(f"Processing data with prefix {dataset_path}")
@@ -203,6 +235,7 @@ def load_data(dataset_path: str, prefix: str = ""):
     (
         target_data_nonnull,
         data_before_onehot,
+        data_one_hot,
         data_onehot_nonnull,
         original_columns,
         window_size,
@@ -210,7 +243,6 @@ def load_data(dataset_path: str, prefix: str = ""):
         original_column_count,
         new_columns,
         new_column_count,
-        data_one_hot,
     ) = __data_preprocessing(
         prefix + dataset_path,
         data_path,
@@ -225,9 +257,9 @@ def load_data(dataset_path: str, prefix: str = ""):
     return (
         target_data_nonnull,
         data_before_onehot,
+        data_one_hot,
         data_onehot_nonnull,
         window_size,
         output_dim,
-        data_one_hot,
         task,
     )

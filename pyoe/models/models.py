@@ -9,9 +9,9 @@ from ..OEBench.model import *
 from ..OEBench.ewc import *
 from ..OEBench.arf import *
 from ..OEBench.armnet import *
-from .networks import *
 from ..algorithms.loss import *
 from ..dataloaders import Dataloader
+from .networks import *
 
 
 class ModelTemplate:
@@ -1865,3 +1865,60 @@ class RrcfDetectorModel(ModelTemplate):
             out (torch.Tensor): a 0-1 vector representing the outlier points.
         """
         return self.net(X)
+
+
+class ChronosModel(ModelTemplate):
+    """
+    A simple Chronos model for time series forecasting tasks.
+    """
+
+    def __init__(
+        self,
+        dataloader: Dataloader,
+        ensemble: int = 1,
+        device: Literal["cpu", "cuda"] = "cpu",
+        prediction_length: int = 1,
+        model_path: Literal["tiny", "mini", "small", "base", "large"] = "tiny",
+    ):
+        """
+        Args:
+            dataloader (Dataloader): the dataloader object that contains the dataset.
+            ensemble (int): the number of models in the ensemble.
+            device (Literal["cpu"]): the device that you want to use for training.
+        """
+        super().__init__(dataloader, ensemble, device)
+        self.model_type = "chronos"
+        self.net = ChronosPredictorNet(prediction_length, model_path, device)
+
+    def process_model(self, **kwargs):
+        """
+        This function is used to process the model before training.
+        In this model, we don't need to process the model before training.
+
+        Args:
+            **kwargs: any arguments that you want to pass.
+        """
+        pass
+
+    def train_forecast(self, X: pd.DataFrame, y: pd.DataFrame):
+        """
+        Train the model with the input data.
+
+        Args:
+            X (pd.DataFrame): the input data.
+            y (pd.DataFrame): the target value.
+        """
+        self.net.fit(X, y)
+
+    def predict_forecast(self, X: pd.DataFrame, y: pd.DataFrame) -> torch.Tensor:
+        """
+        Predict the target value of the input data.
+
+        Args:
+            X (pd.DataFrame): the input data.
+            y (pd.DataFrame): the target value.
+
+        Returns:
+            out (torch.Tensor): the predicted target value of the input data.
+        """
+        return self.net(X, y)
