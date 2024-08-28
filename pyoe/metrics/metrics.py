@@ -114,7 +114,7 @@ class DriftDelayMetric(MetricTemplate):
         This function initializes the model using the first batch of samples.
         It is called in the constructor.
         """
-        X, y = self.dataloader.get_next_sample()
+        X, y = self.dataloader.get_data(), self.dataloader.get_target()
         self.model.fit(X, y)
 
     def measure(self, ground_truth: list[int] | None = None) -> float | list[int]:

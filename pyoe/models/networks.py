@@ -280,13 +280,16 @@ class ChronosPredictorNet(nn.Module):
             verbosity=0,
         )
 
-    def forward(self, X: pd.DataFrame, y: pd.DataFrame) -> torch.Tensor:
+    def forward(self, X: pd.DataFrame, y: pd.DataFrame) -> TimeSeriesDataFrame:
         """
         Predict the future time series data.
 
         Args:
             X (pd.DataFrame): the input data.
             y (pd.DataFrame): the target data.
+
+        Returns:
+            out (TimeSeriesDataFrame): the predicted time series data.
         """
         time_series = TimeSeriesDataFrame(y, X)
-        return torch.tensor(self.model.predict(time_series).to_numpy())
+        return self.model.predict(time_series)

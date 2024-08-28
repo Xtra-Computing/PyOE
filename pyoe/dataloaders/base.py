@@ -90,17 +90,18 @@ class BaseDataloader(Dataset):
         self,
         dataset_name: str,
         data_dir: str = "./data/",
-        window_size: int = 0,
+        reload: bool = False,
     ):
         """
         Args:
             dataset_name (str): the name of the dataset.
             data_dir (str): the directory to store the dataset.
-            window_size (int): the window size of the dataset.
+            reload (bool):
+                whether to reload the dataset or load from cache files if exists.
         """
         self.dataset_name: str = dataset_name
         self.data_dir: str = data_dir
-        self.window_size: int = window_size
+        self.reload: bool = reload
         self.current_index: int = 0
 
         # prepare for the dataset
@@ -165,6 +166,7 @@ class BaseDataloader(Dataset):
         """
         return self.num_samples
 
+    @abstractmethod
     def __getitem__(self, idx, return_outlier_label=False):
         """
         Return the data and target at the given index. This function is required by
@@ -178,82 +180,7 @@ class BaseDataloader(Dataset):
         Returns:
             value (tuple): a tuple of data, target and outlier (if ``return_outlier_label`` is ``True``).
         """
-        return (
-            torch.tensor(self.data[idx]),
-            torch.tensor(self.target[idx]),
-            (
-                torch.tensor(self.outlier_label[idx])
-                if return_outlier_label
-                else torch.tensor([])
-            ),
-        )
-
-    def reach_end(self) -> bool:
-        """
-        Check if the dataloader reaches the end of the dataset. Now it is not used.
-
-        Returns:
-            bool: whether the dataloader reaches the end of the dataset.
-        """
-        return self.current_index >= self.num_samples
-
-    def get_next_sample(self, return_outlier_label: bool = False):
-        """
-        Return the next sample in the dataset. Now it is not used.
-
-        Args:
-            return_outlier_label (bool): whether to return the outlier label.
-
-        Returns:
-            value (tuple): a tuple of data, target and outlier (if ``return_outlier_label`` is ``True``).
-        """
-        if return_outlier_label == False:
-            value = (
-                self.data[self.current_index : self.current_index + self.window_size],
-                self.target[self.current_index : self.current_index + self.window_size],
-            )
-        else:
-            value = (
-                self.data[self.current_index : self.current_index + self.window_size],
-                self.target[self.current_index : self.current_index + self.window_size],
-                torch.tensor(
-                    self.outlier_label[
-                        self.current_index : self.current_index + self.window_size
-                    ]
-                ),
-            )
-        self.current_index = self.current_index + self.window_size
-        return value
-
-    def set_local_outlier_label(self, outlier_label: np.array) -> None:
-        """
-        Set the local outlier label for the current window.
-
-        Args:
-            outlier_label (np.array): the outlier label for the current window.
-        """
-        self.outlier_label[
-            self.current_index : self.current_index + self.window_size
-        ] = outlier_label
-
-    def set_global_outlier_label(self, outlier_label: np.array) -> None:
-        """
-        Set the global outlier label for the dataset.
-
-        Args:
-            outlier_label (np.array): the outlier label for the dataset.
-        """
-        self.outlier_label = outlier_label
-        self.outlier_ratio = np.sum(self.outlier_label) / self.num_samples
-
-    def set_window_size(self, window_size: int) -> None:
-        """
-        Set the window size for the dataset.
-
-        Args:
-            window_size (int): the window size for the dataset.
-        """
-        self.window_size = window_size
+        pass
 
     def get_data(self) -> torch.Tensor | pd.DataFrame:
         """
@@ -274,24 +201,6 @@ class BaseDataloader(Dataset):
             out (torch.Tensor | pd.DataFrame): the target in the dataset.
         """
         return self.target
-
-    def get_outlier_ratio(self) -> float:
-        """
-        Return the outlier ratio for the dataset.
-
-        Returns:
-            float: the outlier ratio for the dataset.
-        """
-        return self.outlier_ratio
-
-    def get_window_size(self) -> int:
-        """
-        Return the window size for the dataset.
-
-        Returns:
-            int: the window size for the dataset.
-        """
-        return self.window_size
 
     def get_num_samples(self) -> int:
         """
@@ -473,18 +382,42 @@ class Dataloader(BaseDataloader):
         self,
         dataset_name: str,
         data_dir: str = "./data/",
-        window_size: int = 0,
+        reload: bool = False,
     ):
         """
         Args:
             dataset_name (str): the name of the dataset.
             data_dir (str): the directory to store the dataset.
-            window_size (int): the window size of the dataset.
+            reload (bool):
+                whether to reload the dataset or load from cache files if exists
         """
         super().__init__(
             dataset_name=dataset_name,
             data_dir=data_dir,
-            window_size=window_size,
+            reload=reload,
+        )
+
+    def __getitem__(self, idx: int, return_outlier_label=False):
+        """
+        Return the data and target at the given index. This function is required by
+        PyTorch. Note that ``return_outlier_label`` is passed by using a wrapper
+        class ``DataloaderWrapper``.
+
+        Args:
+            idx (int): the index of the sample.
+            return_outlier_label (bool): whether to return the outlier label.
+
+        Returns:
+            value (tuple): a tuple of data, target and outlier (if ``return_outlier_label`` is ``True``).
+        """
+        return (
+            torch.tensor(self.data[idx]),
+            torch.tensor(self.target[idx]),
+            (
+                torch.tensor(self.outlier_label[idx])
+                if return_outlier_label
+                else torch.tensor([])
+            ),
         )
 
     def _load_dataset(self) -> None:
@@ -503,6 +436,7 @@ class Dataloader(BaseDataloader):
             ) = load_data(
                 dataset_path=self.dataset_name,
                 prefix=self.data_dir,
+                reload=self.reload,
             )
         except Exception as e:
             raise e
@@ -520,7 +454,6 @@ class Dataloader(BaseDataloader):
         self.num_samples = data_one_hot.shape[0]
         self.num_columns = data_one_hot.shape[1]
         self.output_dim = output_dim
-        self.window_size = window_size if self.window_size == 0 else self.window_size
         self.outlier_ratio = np.sum(self.outlier_label) / self.num_samples
 
     def _load_od_dataset(self) -> None:
@@ -602,9 +535,20 @@ class Dataloader(BaseDataloader):
         self.task = "outlier detection"
         self.num_samples = self.data.shape[0]
         self.num_columns = self.data.shape[1]
-        if self.window_size == 0:
-            self.window_size = 1
         self.output_dim = 1
+
+    """
+    Below are some helper functions with regard to outlier detection.
+    """
+
+    def get_outlier_ratio(self) -> float:
+        """
+        Return the outlier ratio for the dataset.
+
+        Returns:
+            float: the outlier ratio for the dataset.
+        """
+        return self.outlier_ratio
 
 
 class TimeSeriesDataloader(BaseDataloader):
@@ -617,19 +561,35 @@ class TimeSeriesDataloader(BaseDataloader):
         self,
         dataset_name: str,
         data_dir: str = "./data/",
-        window_size: int = 0,
+        reload: bool = False,
     ):
         """
         Args:
             dataset_name (str): the name of the dataset.
             data_dir (str): the directory to store the dataset.
-            window_size (int): the window size of the dataset.
+            reload (bool):
+                whether to reload the dataset or load from cache files if exists.
         """
         super().__init__(
             dataset_name=dataset_name,
             data_dir=data_dir,
-            window_size=window_size,
+            reload=reload,
         )
+
+    def __getitem__(self, idx: int, return_outlier_label=False):
+        """
+        Return the data and target at the given index. This function is required by
+        PyTorch.
+
+        Args:
+            idx (int): the index of the sample.
+            return_outlier_label (bool): whether to return the outlier label
+                (not used for time series data).
+
+        Returns:
+            value (tuple): a tuple of data, target and an empty tensor.
+        """
+        return (self.data.iloc[idx], self.target.iloc[idx], torch.tensor([]))
 
     def _load_dataset(self) -> None:
         """
@@ -647,6 +607,7 @@ class TimeSeriesDataloader(BaseDataloader):
             ) = load_data(
                 dataset_path=self.dataset_name,
                 prefix=self.data_dir,
+                reload=self.reload,
             )
         except Exception as e:
             raise e
@@ -663,7 +624,6 @@ class TimeSeriesDataloader(BaseDataloader):
         self.num_samples = data_one_hot.shape[0]
         self.num_columns = data_one_hot.shape[1]
         self.output_dim = output_dim
-        self.window_size = window_size if self.window_size == 0 else self.window_size
 
     def _load_od_dataset(self) -> None:
         """

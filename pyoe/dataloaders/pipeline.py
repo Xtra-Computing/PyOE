@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import numpy as np
@@ -30,7 +31,11 @@ def __schema_parser(path: str):
 
 
 def __data_preprocessing(
-    dataset_path_prefix: str, data_path: str, schema_path: str, task: str
+    dataset_path_prefix: str,
+    data_path: str,
+    schema_path: str,
+    task: str,
+    reload: bool = False,
 ):
     """
     Preprocess the data and return the target data, data before one hot encoding,
@@ -132,13 +137,23 @@ def __data_preprocessing(
         logging.error(f"Task {task} is not supported")
         raise ValueError(f"{task}: task not supported")
 
-    # check for the existence of the file
     logging.info("Start null values processing")
-    # if os.path.exists(dataset_path_prefix + "/onehot_nonnull.csv"):
-    #     data_onehot_nonnull_path = dataset_path_prefix + "/onehot_nonnull.csv"
-    #     data_onehot_nonnull = pd.read_csv(data_onehot_nonnull_path)
-    # else:
-    if data_one_hot.isna().values.any():
+    # check for the existence of the cache file
+    whole_data_one_hot_path = dataset_path_prefix + "/onehot_nonnull.csv"
+    if os.path.exists(whole_data_one_hot_path) and reload is False:
+        logging.info("Loading the processed data from previouly saved file")
+        # load the data from the file
+        whole_data_one_hot = pd.read_csv(whole_data_one_hot_path, index_col=0)
+        if task == "forecasting":
+            # forecast task needs timestamp additionally
+            whole_data_one_hot["timestamp"] = pd.to_datetime(
+                whole_data_one_hot["timestamp"]
+            )
+        # divide the data into target and data without target
+        target_data = whole_data_one_hot[target]
+        data_onehot_nonnull = whole_data_one_hot.drop(target, axis=1)
+        logging.info("Loading finished")
+    elif data_one_hot.isna().values.any():
         # join target columns to the one hot data
         logging.info("The dataset has null values")
         data_one_hot[target] = target_data  # add target to one hot data
@@ -173,9 +188,7 @@ def __data_preprocessing(
         target_data.reset_index(drop=True),
     ]
     whole_data_one_hot = pd.concat(concat_data, axis=1)
-
     # output the data without null values to a csv file
-    whole_data_one_hot_path = dataset_path_prefix + "/onehot_nonnull.csv"
     whole_data_one_hot.to_csv(whole_data_one_hot_path, mode="w")
 
     if task == "forecasting":
@@ -205,7 +218,7 @@ def __data_preprocessing(
     )
 
 
-def load_data(dataset_path: str, prefix: str = ""):
+def load_data(dataset_path: str, prefix: str = "", reload: bool = False):
     """
     Load the data and return the target data, data before one hot encoding,
     data after one hot encoding, window size, output dimension, data one hot,
@@ -248,6 +261,7 @@ def load_data(dataset_path: str, prefix: str = ""):
         data_path,
         schema_path,
         task,
+        reload,
     )
     logging.info(f"Data preprocessing for {dataset_path} has been done")
 

@@ -36,7 +36,6 @@ class ModelTemplate:
         # fetch metadata of the dataset from dataloader
         self.column_count = dataloader.get_num_columns()
         self.output_dim = dataloader.get_output_dim()
-        self.window_size = dataloader.get_window_size()
         self.task = dataloader.get_task()
         self.device = device
         # some default values
@@ -1910,7 +1909,7 @@ class ChronosModel(ModelTemplate):
         """
         self.net.fit(X, y)
 
-    def predict_forecast(self, X: pd.DataFrame, y: pd.DataFrame) -> torch.Tensor:
+    def predict_forecast(self, X: pd.DataFrame, y: pd.DataFrame) -> TimeSeriesDataFrame:
         """
         Predict the target value of the input data.
 
@@ -1919,6 +1918,6 @@ class ChronosModel(ModelTemplate):
             y (pd.DataFrame): the target value.
 
         Returns:
-            out (torch.Tensor): the predicted target value of the input data.
+            out (TimeSeriesDataFrame): the predicted target value of the input data.
         """
         return self.net(X, y)
