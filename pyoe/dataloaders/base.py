@@ -124,11 +124,15 @@ class BaseDataloader(Dataset):
                 # prepare dataset
                 self.__prepare_dataset()
                 # using two different loading method
-                if "OD_datasets" in self.dataset_name:
+                if self.dataset_name.startswith("dataset_experiment_info"):
+                    self._load_common_dataset()
+                elif self.dataset_name.startswith("OD_datasets"):
                     self._load_od_dataset()
+                elif self.dataset_name.startswith("financial_datasets"):
+                    self._load_financial_dataset()
                 else:
-                    self._load_dataset()
-                # loading succeeded
+                    # dataset not supported
+                    raise ValueError("Dataset not supported.")
                 break
             except Exception as e:
                 if try_time >= max_try_time:
@@ -140,7 +144,7 @@ class BaseDataloader(Dataset):
                     # error occurred when loading data
                     try_time += 1
                     logging.error(
-                        "Failed to load the dataset, now try to re-download it"
+                        f'Failed to load the dataset due to "{e}", now try to re-download it'
                     )
                     # os.system(f"rm -rf {self.data_dir}")
 
@@ -150,12 +154,7 @@ class BaseDataloader(Dataset):
         """
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
-        if (
-            not os.path.exists(f"{self.data_dir}dataset")
-            or not os.path.exists(f"{self.data_dir}OD_datasets")
-            or not os.path.exists(f"{self.data_dir}dataset_experiment_info")
-        ):
-            self.__download_dataset()
+        self.__download_dataset()
 
     def __len__(self):
         """
@@ -242,18 +241,37 @@ class BaseDataloader(Dataset):
         """
         Download the dataset from the website.
         """
-        logging.info(
-            "Start to download datasets from http://137.132.83.144/yiqun/dataset.zip"
-        )
+        if self.dataset_name.startswith("dataset_experiment_info"):
+            # download the common dataset if not exists
+            if not os.path.exists(f"{self.data_dir}dataset") or not os.path.exists(
+                f"{self.data_dir}dataset_experiment_info"
+            ):
+                self.__download_common_dataset()
+        elif self.dataset_name.startswith("OD_datasets"):
+            # download the OD dataset if not exists
+            if not os.path.exists(f"{self.data_dir}OD_datasets"):
+                self.__download_od_dataset()
+        elif self.dataset_name.startswith("financial_datasets"):
+            # download the financial dataset if not exists
+            if not os.path.exists(f"{self.data_dir}financial_datasets"):
+                self.__download_financial_dataset()
+        else:
+            # dataset not supported
+            raise ValueError("Dataset not supported.")
+
+    def __download_common_dataset(self) -> None:
+        """
+        Download the dataset from the website.
+        """
         try:
             # download from the website
+            logging.info(
+                "Start to download datasets from http://137.132.83.144/yiqun/dataset.zip"
+            )
             wget.download("http://137.132.83.144/yiqun/dataset.zip", out=self.data_dir)
             wget.download(
                 "http://137.132.83.144/yiqun/dataset_experiment_info.zip",
                 out=self.data_dir,
-            )
-            wget.download(
-                "http://137.132.83.144/yiqun/OD_datasets.zip", out=self.data_dir
             )
             logging.info("Downloading finished!")
             # unzip those downloaded files
@@ -262,6 +280,28 @@ class BaseDataloader(Dataset):
             os.system(
                 f"unzip {self.data_dir}dataset_experiment_info.zip -d {self.data_dir}"
             )
+            logging.info("Unzipping finished!")
+        except Exception as e:
+            # error occurred while downloading
+            logging.error("Obtaining datasets failed!")
+            raise e
+
+    def __download_od_dataset(self) -> None:
+        """
+        Download the dataset from the website.
+        """
+        try:
+            # download from the website
+            logging.info(
+                "Start to download datasets from http://137.132.83.144/yiqun/OD_datasets.zip"
+            )
+            # download from the website
+            wget.download(
+                "http://137.132.83.144/yiqun/OD_datasets.zip", out=self.data_dir
+            )
+            logging.info("Downloading finished!")
+            # unzip those downloaded files
+            logging.info("Start to unzip the downloaded archive...")
             os.system(f"unzip {self.data_dir}OD_datasets.zip -d {self.data_dir}")
             logging.info("Unzipping finished!")
         except Exception as e:
@@ -269,8 +309,31 @@ class BaseDataloader(Dataset):
             logging.error("Obtaining datasets failed!")
             raise e
 
+    def __download_financial_dataset(self) -> None:
+        """
+        Download the dataset from the website.
+        """
+        try:
+            # download from the website
+            logging.info(
+                "Start to download datasets from http://137.132.83.144/yiqun/financial_datasets.zip"
+            )
+            # download from the website
+            wget.download(
+                "http://137.132.83.144/yiqun/financial_datasets.zip", out=self.data_dir
+            )
+            logging.info("Downloading finished!")
+            # unzip those downloaded files
+            logging.info("Start to unzip the downloaded archive...")
+            os.system(f"unzip {self.data_dir}financial_datasets.zip -d {self.data_dir}")
+            logging.info("Unzipping finished!")
+        except Exception as e:
+            # error occurred while downloading
+            logging.error("Obtaining datasets failed!")
+            raise e
+
     @abstractmethod
-    def _load_dataset(self) -> None:
+    def _load_common_dataset(self) -> None:
         """
         Load the dataset from local files.
         """
@@ -280,6 +343,13 @@ class BaseDataloader(Dataset):
     def _load_od_dataset(self) -> None:
         """
         Load the OD dataset from local files.
+        """
+        raise NotImplementedError("This function should be implemented in subclass.")
+
+    @abstractmethod
+    def _load_financial_dataset(self) -> None:
+        """
+        Load the financial dataset from local files.
         """
         raise NotImplementedError("This function should be implemented in subclass.")
 
@@ -420,7 +490,7 @@ class Dataloader(BaseDataloader):
             ),
         )
 
-    def _load_dataset(self) -> None:
+    def _load_common_dataset(self) -> None:
         """
         Load the dataset from local files.
         """
@@ -537,6 +607,15 @@ class Dataloader(BaseDataloader):
         self.num_columns = self.data.shape[1]
         self.output_dim = 1
 
+    def _load_financial_dataset(self) -> None:
+        """
+        Load the financial dataset from local files.
+        Currently only supported with ``TimeSeriesDataloader``.
+        """
+        raise ValueError(
+            "Currently financial dataset is not supported for non-time-series data."
+        )
+
     """
     Below are some helper functions with regard to outlier detection.
     """
@@ -591,7 +670,7 @@ class TimeSeriesDataloader(BaseDataloader):
         """
         return (self.data.iloc[idx], self.target.iloc[idx], torch.tensor([]))
 
-    def _load_dataset(self) -> None:
+    def _load_common_dataset(self) -> None:
         """
         Load the dataset from local files.
         """
@@ -631,6 +710,48 @@ class TimeSeriesDataloader(BaseDataloader):
         Currently not supported for time series data.
         """
         raise ValueError("Currently OD dataset is not supported for time series data.")
+
+    def _load_financial_dataset(self) -> None:
+        """
+        Load the financial dataset from local files.
+        """
+        # change the extension name of self.dataset_name to "csv"
+        base_name, _ = os.path.splitext(self.dataset_name)
+        self.dataset_name = f"{base_name}.csv"
+
+        # if the dataset not exists, raise an error
+        if not os.path.exists(f"{self.data_dir}/{self.dataset_name}"):
+            raise ValueError("Dataset not supported.")
+
+        # load the dataset
+        target_label = "1. open"
+        whole_data = pd.read_csv(f"{self.data_dir}/{self.dataset_name}")
+        whole_data["date"] = pd.to_datetime(whole_data["date"])
+
+        # infer and then set frequency
+        freq = "D"  # note: datasets in ``financial_datasets`` are daily
+        whole_data.set_index("date", inplace=True)
+        whole_data = whole_data.asfreq(freq, method="ffill")
+        whole_data.reset_index(inplace=True)
+
+        target = whole_data[["date", target_label]]
+        target["date"] = pd.to_datetime(target["date"])
+        data = whole_data.drop(columns=["date", target_label])
+
+        # rename the columns
+        rename_dict = {target_label: "target", "date": "timestamp"}
+        target.rename(columns=rename_dict, inplace=True)
+
+        # add some necessary columns
+        target["item_id"] = 0
+        data["item_id"] = 0
+
+        self.data = data
+        self.target = target
+        self.task = "forecasting"
+        self.num_samples = self.data.shape[0]
+        self.num_columns = self.data.shape[1]
+        self.output_dim = 1
 
 
 class DataloaderWrapper(Dataset):
