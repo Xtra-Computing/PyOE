@@ -11,15 +11,15 @@ The structure of our system is shown below:
 First, you need to install the dependencies required by PyOE. You can do this by running the following commands:
 
 ```shell
-pip install streamad==0.3.1
+pip install river==0.21.2 rtdl==0.0.13 streamad==0.3.1
 pip install pyoe
 ```
 
 We have some examples in the examples folder. You can copy one of these examples to the parent directory of this README file and try running them. If they run successfully, it means the installation is complete.
 
-## Five Main Tasks of PyOE System
+## Six Main Tasks of PyOE System
 
-Our PyOE system currently supports 5 types of tasks: regression analysis, classification, outlier detection, and concept drift detection. In the following, we will provide examples of code for each of these 5 tasks.
+Our PyOE system currently supports 6 types of tasks: regression analysis, classification, outlier detection, concept drift detection, and time series forecasting. In the following, we will provide examples of code for each of these 6 tasks.
 
 ### Regression
 
@@ -135,13 +135,52 @@ print(pyoe.metrics.DriftDelayMetric(dataloader).measure())
 
 It will print a floating-point number representing the *Average Concept Drift Delay*.
 
+### Time Series Forecasting
+
+Our time series forecasting function uses the Chronos model to train and predict on our economic dataset. Due to the unique characteristics of time series data, we need to use ```pyoe.TimeSeriesDataloader``` to load the dataset and retrieve the features and targets using ```get_data``` and ```get_target```, respectively, which are then passed to the training function to train the model. The example below illustrates this:
+
+```python
+import pyoe
+import matplotlib.pyplot as plt
+
+# prepare dataloader, model, preprocessor and trainer
+prediction_length = 16
+dataloader = pyoe.TimeSeriesDataloader(dataset_name="financial_datasets/AAA")
+model = pyoe.ChronosModel(
+    dataloader, device="cuda", prediction_length=prediction_length, model_path="tiny"
+)
+
+# train the model
+X, y = dataloader.get_data(), dataloader.get_target()
+model.train_forecast(X, y)
+
+# split the data and predict
+X_front, y_front = X[:-prediction_length], y[:-prediction_length]
+y_pred = model.predict_forecast(X_front, y_front)
+print(y["target"].values[-prediction_length:], y_pred["mean"].to_numpy())
+
+# plot the prediction
+y_prev = y["target"].values[-prediction_length * 2 :]
+x_prev = range(len(y_prev))
+y_pred = y_pred["mean"].to_numpy()
+x_pred = range(prediction_length, prediction_length + len(y_pred))
+
+plt.plot(x_prev, y_prev, label="Previous")
+plt.plot(x_pred, y_pred, label="Predicted")
+plt.savefig("example_7.png")
+```
+
+The code above will generate a plot saved as ```example_7.png```, demonstrating the curves of actual data and predicted data.
+
 ## Repos We Refer To
 
 - https://github.com/Minqi824/ADBench
 - https://github.com/messaoudia/AdaptiveRandomForest
 - https://github.com/moskomule/ewc.pytorch
+- https://github.com/amazon-science/chronos-forecasting
 
 ## Citation
+
 If you find this repository useful, please cite our paper:
 
 ```
