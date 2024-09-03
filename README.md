@@ -11,7 +11,7 @@ The structure of our system is shown below:
 First, you need to install the dependencies required by PyOE. You can do this by running the following commands:
 
 ```shell
-pip install river==0.21.2 rtdl==0.0.13 streamad==0.3.1
+pip install --no-deps river==0.21.2 rtdl==0.0.13 streamad==0.3.1
 pip install pyoe
 ```
 
