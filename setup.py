@@ -18,7 +18,7 @@ URL = "https://github.com/sjtudyq/PyOE"
 EMAIL = "liao_chengfan@sjtu.edu.cn"
 AUTHOR = "Liao Chengfan"
 REQUIRES_PYTHON = ">=3.10"
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 # What packages are required for this module to be executed?
 REQUIRED = [

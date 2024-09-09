@@ -640,15 +640,19 @@ class TimeSeriesDataloader(BaseDataloader):
         self,
         dataset_name: str,
         data_dir: str = "./data/",
+        predicted_label: str = "1. open",
         reload: bool = False,
     ):
         """
         Args:
             dataset_name (str): the name of the dataset.
             data_dir (str): the directory to store the dataset.
+            predicted_label (str): the column name of the target.
             reload (bool):
                 whether to reload the dataset or load from cache files if exists.
         """
+        # predicted_label is the column name of the target
+        self.predicted_label = predicted_label
         super().__init__(
             dataset_name=dataset_name,
             data_dir=data_dir,
@@ -724,7 +728,6 @@ class TimeSeriesDataloader(BaseDataloader):
             raise ValueError("Dataset not supported.")
 
         # load the dataset
-        target_label = "1. open"
         whole_data = pd.read_csv(f"{self.data_dir}/{self.dataset_name}")
         whole_data["date"] = pd.to_datetime(whole_data["date"])
 
@@ -734,12 +737,12 @@ class TimeSeriesDataloader(BaseDataloader):
         whole_data = whole_data.asfreq(freq, method="ffill")
         whole_data.reset_index(inplace=True)
 
-        target = whole_data[["date", target_label]]
+        target = whole_data[["date", self.predicted_label]]
         target["date"] = pd.to_datetime(target["date"])
-        data = whole_data.drop(columns=["date", target_label])
+        data = whole_data.drop(columns=["date", self.predicted_label])
 
         # rename the columns
-        rename_dict = {target_label: "target", "date": "timestamp"}
+        rename_dict = {self.predicted_label: "target", "date": "timestamp"}
         target.rename(columns=rename_dict, inplace=True)
 
         # add some necessary columns
