@@ -156,87 +156,6 @@ class BaseDataloader(Dataset):
             os.makedirs(self.data_dir)
         self.__download_dataset()
 
-    def __len__(self):
-        """
-        Return the number of samples in the dataset. This function is required by PyTorch.
-
-        Returns:
-            int: the number of samples in the dataset.
-        """
-        return self.num_samples
-
-    @abstractmethod
-    def __getitem__(self, idx, return_outlier_label=False):
-        """
-        Return the data and target at the given index. This function is required by
-        PyTorch. Note that ``return_outlier_label`` is passed by using a wrapper
-        class ``DataloaderWrapper``.
-
-        Args:
-            idx (int): the index of the sample.
-            return_outlier_label (bool): whether to return the outlier label.
-
-        Returns:
-            value (tuple): a tuple of data, target and outlier (if ``return_outlier_label`` is ``True``).
-        """
-        pass
-
-    def get_data(self) -> torch.Tensor | pd.DataFrame:
-        """
-        Return the data in the dataset.
-        pd.DataFrame for time series data, torch.Tensor for others.
-
-        Returns:
-            out (torch.Tensor | pd.DataFrame): the data in the dataset.
-        """
-        return self.data
-
-    def get_target(self) -> torch.Tensor | pd.DataFrame:
-        """
-        Return the target in the dataset.
-        pd.DataFrame for time series data, torch.Tensor for others.
-
-        Returns:
-            out (torch.Tensor | pd.DataFrame): the target in the dataset.
-        """
-        return self.target
-
-    def get_num_samples(self) -> int:
-        """
-        Return the number of samples in the dataset.
-
-        Returns:
-            int: the number of samples in the dataset.
-        """
-        return self.num_samples
-
-    def get_num_columns(self) -> int:
-        """
-        Return the number of columns in the dataset.
-
-        Returns:
-            int: the number of columns in the dataset.
-        """
-        return self.num_columns
-
-    def get_output_dim(self) -> int:
-        """
-        Return the output dimension of the dataset.
-
-        Returns:
-            int: the output dimension of the dataset.
-        """
-        return self.output_dim
-
-    def get_task(self) -> str:
-        """
-        Return the task of the dataset.
-
-        Returns:
-            str: the task of the dataset.
-        """
-        return self.task
-
     def __download_dataset(self) -> None:
         """
         Download the dataset from the website.
@@ -352,6 +271,109 @@ class BaseDataloader(Dataset):
         Load the financial dataset from local files.
         """
         raise NotImplementedError("This function should be implemented in subclass.")
+
+    def __len__(self):
+        """
+        Return the number of samples in the dataset. This function is required by PyTorch.
+
+        Returns:
+            out (int): the number of samples in the dataset.
+        """
+        return self.num_samples
+
+    @abstractmethod
+    def __getitem__(self, idx, return_outlier_label=False):
+        """
+        Return the data and target at the given index. This function is required by
+        PyTorch. Note that ``return_outlier_label`` is passed by using a wrapper
+        class ``DataloaderWrapper``.
+
+        Args:
+            idx (int): the index of the sample.
+            return_outlier_label (bool): whether to return the outlier label.
+
+        Returns:
+            out (tuple): a tuple of data, target and outlier (if ``return_outlier_label`` is ``True``).
+        """
+        pass
+
+    def get_data(self) -> torch.Tensor | pd.DataFrame:
+        """
+        Return the data in the dataset.
+        pd.DataFrame for time series data, torch.Tensor for others.
+
+        Returns:
+            out (torch.Tensor | pd.DataFrame): the data in the dataset.
+        """
+        return self.data
+
+    def get_target(self) -> torch.Tensor | pd.DataFrame:
+        """
+        Return the target in the dataset.
+        pd.DataFrame for time series data, torch.Tensor for others.
+
+        Returns:
+            out (torch.Tensor | pd.DataFrame): the target in the dataset.
+        """
+        return self.target
+
+    def get_num_samples(self) -> int:
+        """
+        Return the number of samples in the dataset.
+
+        Returns:
+            out (int): the number of samples in the dataset.
+        """
+        return self.num_samples
+
+    def get_num_columns(self) -> int:
+        """
+        Return the number of columns in the dataset.
+
+        Returns:
+            out (int): the number of columns in the dataset.
+        """
+        return self.num_columns
+
+    def get_output_dim(self) -> int:
+        """
+        Return the output dimension of the dataset.
+
+        Returns:
+            out (int): the output dimension of the dataset.
+        """
+        return self.output_dim
+
+    def get_task(self) -> str:
+        """
+        Return the task of the dataset.
+
+        Returns:
+            out (str): the task of the dataset.
+        """
+        return self.task
+
+    def get_missing_rate(self) -> float:
+        """
+        Return the missing rate for the dataset.
+
+        Returns:
+            out (float): the missing rate for the dataset.
+        """
+        return self.missing_ratio
+
+    @staticmethod
+    def calculate_missing_rate(data: pd.DataFrame) -> float:
+        """
+        Calculate the missing rate for a dataset.
+
+        Args:
+            data (pd.DataFrame): the data of the dataset.
+
+        Returns:
+            out (float): the missing rate for the dataset.
+        """
+        return data.isna().any(axis=1).sum() / data.shape[0]
 
     @staticmethod
     def get_oebench_datasets() -> list[str]:
@@ -525,6 +547,7 @@ class Dataloader(BaseDataloader):
         self.num_columns = data_one_hot.shape[1]
         self.output_dim = output_dim
         self.outlier_ratio = np.sum(self.outlier_label) / self.num_samples
+        self.missing_ratio = self.calculate_missing_rate(data_before_onehot)
 
     def _load_od_dataset(self) -> None:
         """
@@ -606,6 +629,7 @@ class Dataloader(BaseDataloader):
         self.num_samples = self.data.shape[0]
         self.num_columns = self.data.shape[1]
         self.output_dim = 1
+        self.missing_ratio = self.calculate_missing_rate(pd.DataFrame(self.data))
 
     def _load_financial_dataset(self) -> None:
         """
@@ -707,6 +731,7 @@ class TimeSeriesDataloader(BaseDataloader):
         self.num_samples = data_one_hot.shape[0]
         self.num_columns = data_one_hot.shape[1]
         self.output_dim = output_dim
+        self.missing_ratio = self.calculate_missing_rate(self.data)
 
     def _load_od_dataset(self) -> None:
         """
@@ -755,6 +780,7 @@ class TimeSeriesDataloader(BaseDataloader):
         self.num_samples = self.data.shape[0]
         self.num_columns = self.data.shape[1]
         self.output_dim = 1
+        self.missing_ratio = self.calculate_missing_rate(self.data)
 
 
 class DataloaderWrapper(Dataset):

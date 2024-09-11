@@ -82,7 +82,7 @@ def __data_preprocessing(
 
     total_columns = data.columns
     original_column_count = data.shape[1]
-    original_data = data
+    original_data = data.copy()
 
     # replace some values with null
     logging.info("Start to replace some values with null")
@@ -99,9 +99,8 @@ def __data_preprocessing(
     data = data.sort_values(timestamp, ascending=True)
     logging.info("Sorting finished")
 
-    original_data = data
+    # get the target data
     target_data = data[target]
-    timestamp_data = pd.to_datetime(data[timestamp], errors="coerce")
 
     # drop unnecessary columns
     data = data.drop(unnecessary, axis=1)
@@ -129,7 +128,7 @@ def __data_preprocessing(
         output_dim = 1
     elif task == "forecasting":
         output_dim = 1
-        data_one_hot["timestamp"] = timestamp_data
+        data_one_hot["timestamp"] = pd.to_datetime(data[timestamp], errors="coerce")
         if time_interval is None:
             logging.error("Time interval must be specified for forecasting task")
             raise ValueError("Time interval is not specified")

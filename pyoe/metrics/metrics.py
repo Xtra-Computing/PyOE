@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from abc import abstractmethod
 from sklearn.linear_model import LinearRegression
 from torch.utils.data import DataLoader
@@ -140,11 +141,17 @@ class DriftDelayMetric(MetricTemplate):
         for idx, (X, y, _) in enumerate(torch_dataloader):
             # calculate the predicted value and update DDM model
             predict_y = self.model.predict(X)
-            true_y = y.cpu().detach().numpy().item()
+
+            # ensure y is a single label if it's one-hot encoded
+            index_y = y.argmax(dim=1) if y.dim() > 1 and y.size(dim=1) > 1 else y
+            true_y = index_y.cpu().detach().numpy().item()
 
             # ensure predict_y is a numpy array
             if isinstance(predict_y, torch.Tensor):
-                predict_y = predict_y.cpu().detach().numpy()
+                predict_y: np.ndarray = predict_y.cpu().detach().numpy()
+            # ensure predict_y is a single label if it's one-hot encoded
+            if predict_y.ndim > 1:
+                predict_y = predict_y.argmax(axis=1)
             predict_y = predict_y.item()
 
             # update and continue
